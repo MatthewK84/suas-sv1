@@ -2,24 +2,8 @@ import { useState, useEffect } from "react";
 import ThreatMatrix from "./ThreatMatrix";
 import { getNodeEffectiveness } from "./threatData";
 
-function useFonts() {
-  useEffect(() => {
-    const l = document.createElement("link");
-    l.href = "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";
-    l.rel = "stylesheet"; document.head.appendChild(l);
-    return () => document.head.removeChild(l);
-  }, []);
-}
-
-function useMobile(bp = 768) {
-  const [m, setM] = useState(typeof window !== "undefined" ? window.innerWidth < bp : false);
-  useEffect(() => {
-    const h = () => setM(window.innerWidth < bp);
-    window.addEventListener("resize", h);
-    return () => window.removeEventListener("resize", h);
-  }, [bp]);
-  return m;
-}
+function useFonts(){useEffect(()=>{const l=document.createElement("link");l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";l.rel="stylesheet";document.head.appendChild(l);return()=>document.head.removeChild(l);},[]);}
+function useMobile(bp=768){const[m,setM]=useState(typeof window!=="undefined"?window.innerWidth<bp:false);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[bp]);return m;}
 
 const PERIM=[[160,100],[380,75],[600,60],[780,70],[880,90],[940,130],[970,200],[970,320],[980,420],[1010,480],[1080,500],[1180,490],[1280,510],[1320,560],[1300,620],[1220,660],[1100,680],[980,670],[880,640],[780,620],[620,650],[440,660],[280,630],[170,560],[130,430],[120,290],[140,170]];
 const RW={x1:220,y1:190,x2:740,y2:470,w:13};
@@ -28,13 +12,12 @@ const N=[{id:"S01",x:185,y:140,t:"s"},{id:"S02",x:360,y:100,t:"s"},{id:"S03",x:5
 const R=[{id:"R01",x:200,y:170},{id:"R02",x:680,y:100},{id:"R03",x:910,y:170},{id:"R04",x:960,y:380},{id:"R05",x:680,y:600},{id:"R06",x:240,y:530},{id:"R07",x:470,y:300},{id:"R08",x:1080,y:530},{id:"R09",x:1270,y:590},{id:"R10",x:870,y:580}];
 const AC=[{id:"A01",x:210,y:165},{id:"A02",x:390,y:115},{id:"A03",x:565,y:100},{id:"A04",x:740,y:105},{id:"A05",x:895,y:160},{id:"A06",x:945,y:290},{id:"A07",x:945,y:420},{id:"A08",x:750,y:595},{id:"A09",x:555,y:640},{id:"A10",x:380,y:630},{id:"A11",x:215,y:545},{id:"A12",x:148,y:395},{id:"A13",x:148,y:250},{id:"A14",x:430,y:255},{id:"A15",x:620,y:290},{id:"A16",x:780,y:240},{id:"A17",x:1030,y:470},{id:"A18",x:1130,y:510},{id:"A19",x:1280,y:540},{id:"A20",x:1290,y:640},{id:"A21",x:1120,y:670},{id:"A22",x:1060,y:560},{id:"A23",x:1170,y:620},{id:"A24",x:860,y:560}];
 const EO=[{id:"T01",x:420,y:305},{id:"T02",x:560,y:310},{id:"T03",x:770,y:185},{id:"T04",x:350,y:465},{id:"T05",x:230,y:200},{id:"T06",x:230,y:500},{id:"T07",x:870,y:160},{id:"T08",x:800,y:580},{id:"T09",x:1040,y:500},{id:"T10",x:1080,y:620},{id:"T11",x:1240,y:545},{id:"T12",x:1160,y:660}];
-const C2P={x:460,y:350,l:"C2 PRIMARY"};
-const C2S={x:1060,y:600,l:"C2 SECONDARY"};
+const C2P={x:460,y:350,l:"C2 PRIMARY"};const C2S={x:1060,y:600,l:"C2 SECONDARY"};
 
 const TIPS={
-  s:{title:"Passive RF Sensor Cluster",icon:"◉",color:"#00b4ff",role:"DETECT · CLASSIFY · GEOLOCATE",what:"3-element interferometric DF array passively listening across 70 MHz – 6 GHz.",how:["3x Ettus B205mini-i SDRs on triangular mast with GPS-disciplined phase sync","Instantaneous AoA via phase interferometry","Local AoA fuses with macro TDOA multilateration across 40 nodes","RF fingerprinting classifies platform type; anomaly detection catches unknowns","ML model outputs platform ID to C2 fusion for operator display and EA cueing"],specs:[["SDR","3x Ettus B205mini-i"],["Compute","Jetson Orin Nano Super"],["Backhaul","RFD900x (NDAA)"],["Power","200W solar + 100Ah LiFePO4"],["Range","~2–3 km"]],count:"30 clusters · 90 DF sub-nodes"},
+  s:{title:"Passive RF Sensor Cluster",icon:"◉",color:"#00b4ff",role:"DETECT · CLASSIFY · GEOLOCATE",what:"3-element interferometric DF array passively listening across 70 MHz – 6 GHz.",how:["3x Ettus B205mini-i SDRs on triangular mast with GPS-disciplined phase sync","Instantaneous AoA via phase interferometry","Local AoA fuses with macro TDOA multilateration across 40 nodes","RF fingerprinting classifies platform; anomaly detection catches unknowns","ML model outputs platform ID to C2 for display and EA cueing"],specs:[["SDR","3x Ettus B205mini-i"],["Compute","Jetson Orin Nano Super"],["Backhaul","RFD900x (NDAA)"],["Power","200W solar + 100Ah LiFePO4"],["Range","~2–3 km"]],count:"30 clusters · 90 DF sub-nodes"},
   e:{title:"Electronic Attack + DF",icon:"▲",color:"#ff3c3c",role:"DETECT · REDIRECT · DEFEAT",what:"3-element DF array + high-power SDR TX for active electronic countermeasures.",how:["DF array contributes to macro TDOA geolocation","USRP X310 + 2x UBX-160 drives directional antennas toward threat","Protocol injection: spoofs RTH/land for known platforms","Targeted jamming: forces autopilot failsafe","GPS L1 spoofing: walks position toward redirect corridor","All three fire simultaneously — 30-90 sec timeline"],specs:[["DF Array","3x B205mini-i + GPSDO"],["EA TX","Ettus X310 + 2x UBX-160"],["PA","10W @ 2.4 / 5W @ 5.8 GHz"],["Compute","Jetson Orin NX 16 GB"],["Power","Hardwired AC + UPS"]],count:"10 clusters · 30 DF · 10 TX"},
-  r:{title:"EchoGuard Radar Tower",icon:"◆",color:"#00cc66",role:"DETECT · TRACK · CLASSIFY",what:"3x K-band ESA radars on 20 ft tower for 360° hemispherical coverage.",how:["3x EchoGuard scan 120° Az x 80° El each","Detects Group 1 sUAS at ~1 km — works RF-silent","Doppler classification on hovering drones at 250-500m","RadarHub fuses tracks; EchoWare handles handoffs","4D track data feeds C2 fusion via GigE","Radar-cued EA auto-engages"],specs:[["Radar","3x EchoGuard ESA"],["Band","K-band (24.45–24.65 GHz)"],["FOV","120° Az x 80° El/unit"],["Tracks","20 simultaneous/unit"],["SWaP","1.25 kg, IP67, <50W"]],count:"10 towers · 30 units"},
+  r:{title:"EchoGuard Radar Tower",icon:"◆",color:"#00cc66",role:"DETECT · TRACK · CLASSIFY",what:"3x K-band ESA radars on 20 ft tower for 360° hemispherical coverage.",how:["3x EchoGuard scan 120° Az x 80° El each","Detects Group 1 sUAS at ~1 km — works RF-silent","Doppler classification on hovering drones at 250-500m","RadarHub fuses tracks; EchoWare handles handoffs","4D track data feeds C2 via GigE","Radar-cued EA auto-engages"],specs:[["Radar","3x EchoGuard ESA"],["Band","K-band (24.45–24.65 GHz)"],["FOV","120° Az x 80° El/unit"],["Tracks","20 simultaneous/unit"],["SWaP","1.25 kg, IP67, <50W"]],count:"10 towers · 30 units"},
   ac:{title:"Acoustic MEMS Array",icon:"◎",color:"#a070d0",role:"DETECT RF-SILENT",what:"16-element MEMS mic array with beamforming for DOA of propeller signatures.",how:["16x Knowles MEMS mics in circular array","Teensy 4.1 TDM acquisition; Jetson beamforming","CNN classifier discriminates drone from ambient","BPF harmonics enable platform classification","DOA feeds C2 and cues EO/IR turret","~300-500m range, ambient dependent"],specs:[["Mics","16x Knowles SPH0645LM4H-B"],["Acquisition","Teensy 4.1"],["Compute","Jetson Orin Nano Super"],["Power","100W solar + 30Ah LiFePO4"],["Range","~300-500m"]],count:"24 arrays"},
   eo:{title:"EO/IR Tracking Turret",icon:"◐",color:"#e0a030",role:"TRACK · CONFIRM",what:"Gyro-stabilized LWIR thermal + HD PTZ with AI auto-tracking.",how:["SPI M1-D gimbal: LWIR + HD visible zoom","MVP/9960 AI auto-tracker locks target","Jetson runs aerial object classification CNN","Slews to bearing from acoustic/RF/radar in <3 sec","Track data feeds C2 fusion","IR illuminator extends night range"],specs:[["Gimbal","SPI M1-D"],["AI Tracker","MVP/9960"],["Compute","Jetson Orin Nano Super"],["Mount","Pole mount, PoE++"],["Coverage","360° pan, cued"]],count:"12 turrets"},
   c2:{title:"C2 Fusion Server",icon:"■",color:"#ffcc00",role:"FUSE · DECIDE · COMMAND",what:"Ingests all four phenomenologies, fuses tracks, runs ML, commands EA.",how:["Primary + Secondary linked via fiber backbone","Multi-modal fusion: RF + acoustic + EO/IR + radar","ML classifier assigns platform type and threat level","Operator COP with all tracks and EA status","Auto EA trigger for pre-authorized threats","All data logged for forensics and retraining"],specs:[["Server","2x Dell R660xs"],["GPU","2x NVIDIA T1000"],["Network","10 GbE + fiber"],["Software","GNU Radio, PyTorch"],["UPS","2x APC 1500VA"]],count:"2 servers"},
@@ -48,29 +31,26 @@ const pS=p=>p==="C"?"rgba(255,60,60,0.6)":p==="H"?"rgba(255,180,40,0.5)":"rgba(1
 function effColor(v,a=0.35){if(v>=70)return`rgba(0,204,102,${a})`;if(v>=50)return`rgba(200,200,0,${a})`;if(v>=30)return`rgba(255,150,0,${a})`;return`rgba(255,60,60,${a})`;}
 const TCC={CRITICAL:"#ff0000",HIGH:"#ff4444",ELEVATED:"#ff9900",MODERATE:"#cccc00",LOW:"#00cc66"};
 
-export default function App() {
+export default function App(){
   useFonts();
-  const mobile = useMobile();
-  const [view,setView]=useState("map");
-  const [threat,setThreat]=useState(null);
-  const [act,setAct]=useState(null);
-  const [pin,setPin]=useState(null);
-  const [ly,setLy]=useState({rf:true,ea:true,rd:true,ac:true,eo:true,ms:!mobile,fc:true});
-  const [showPanel,setShowPanel]=useState(false);
-  const cur=pin||act;
-  const tip=cur?TIPS[cur.t]:null;
+  const mobile=useMobile();
+  const[view,setView]=useState("map");
+  const[threat,setThreat]=useState(null);
+  const[act,setAct]=useState(null);
+  const[pin,setPin]=useState(null);
+  const[ly,setLy]=useState({rf:true,ea:true,rd:true,ac:true,eo:true,ms:!mobile,fc:true});
+  const[showPanel,setShowPanel]=useState(false);
+  const cur=pin||act;const tip=cur?TIPS[cur.t]:null;
   const hv=(id,t)=>{if(!mobile)setAct({id,t});};
   const lv=()=>{if(!mobile)setAct(null);};
   const cl=(id,t)=>{setPin(pin&&pin.id===id?null:{id,t});if(mobile)setShowPanel(true);};
   const isA=id=>cur&&cur.id===id;
   const tg=k=>setLy(l=>({...l,[k]:!l[k]}));
-
   const handleShowOnMap=(scored)=>{setThreat(scored);setView("map");};
   const eff=threat?getNodeEffectiveness(threat):null;
 
   return(
     <div style={{background:"#060a10",minHeight:"100vh",fontFamily:"'IBM Plex Mono',monospace",color:"#b8c4d0",overflow:"hidden"}}>
-      {/* Header */}
       <header style={{padding:mobile?"10px 12px 8px":"16px 24px 12px",borderBottom:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between",alignItems:mobile?"center":"flex-end",flexWrap:"wrap",gap:mobile?6:12}}>
         <div style={{flex:1,minWidth:0}}>
           {!mobile&&<div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:5,fontWeight:300}}>DODAF SV-1 SYSTEMS INTERFACE DESCRIPTION</div>}
@@ -87,11 +67,10 @@ export default function App() {
         </div>
       </header>
 
-      {view==="threat" ? (
+      {view==="threat"?(
         <ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>
-      ) : (
+      ):(
         <div style={{display:"flex",flexDirection:"column",height:`calc(100vh - ${mobile?52:90}px)`,overflow:"hidden"}}>
-          {/* Threat overlay banner */}
           {threat&&eff&&(
             <div style={{padding:mobile?"6px 12px":"8px 24px",background:"linear-gradient(90deg,rgba(255,60,60,0.08),rgba(255,60,60,0.02))",borderBottom:"1px solid rgba(255,60,60,0.2)",display:"flex",alignItems:"center",gap:mobile?8:16,flexWrap:"wrap",flexShrink:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -99,11 +78,7 @@ export default function App() {
                 <span style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?11:12,fontWeight:700,color:"#e4ecf4",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{threat.n}</span>
                 <span style={{fontSize:9,color:TCC[threat.rt],fontWeight:700,fontFamily:"'Oxanium',sans-serif",background:`${TCC[threat.rt]}20`,padding:"1px 6px",borderRadius:3,flexShrink:0}}>{threat.or}%</span>
               </div>
-              {!mobile&&<div style={{display:"flex",gap:12,fontSize:9}}>
-                {[["RF",eff.rfSensor,"#00b4ff"],["ACU",eff.acoustic,"#a070d0"],["RAD",eff.radar,"#00cc66"],["EO",eff.eoir,"#e0a030"],["EA",eff.eaNode,"#ff3c3c"]].map(([l,v])=>
-                  <span key={l} style={{color:effColor(v,1)}}><span style={{color:"#506070"}}>{l}</span> {v}%</span>
-                )}
-              </div>}
+              {!mobile&&<div style={{display:"flex",gap:12,fontSize:9}}>{[["RF",eff.rfSensor,"#00b4ff"],["ACU",eff.acoustic,"#a070d0"],["RAD",eff.radar,"#00cc66"],["EO",eff.eoir,"#e0a030"],["EA",eff.eaNode,"#ff3c3c"]].map(([l,v])=><span key={l} style={{color:effColor(v,1)}}><span style={{color:"#506070"}}>{l}</span> {v}%</span>)}</div>}
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>setView("threat")} style={{padding:mobile?"6px 10px":"3px 10px",borderRadius:3,border:"1px solid rgba(0,255,120,0.3)",background:"transparent",color:"#00ff88",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",minHeight:mobile?36:undefined}}>← MATRIX</button>
                 <button onClick={()=>setThreat(null)} style={{padding:mobile?"6px 10px":"3px 10px",borderRadius:3,border:"1px solid rgba(255,60,60,0.3)",background:"transparent",color:"#ff6666",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",minHeight:mobile?36:undefined}}>✕</button>
@@ -112,7 +87,6 @@ export default function App() {
           )}
 
           <div style={{display:"flex",flex:1,overflow:"hidden",flexDirection:mobile?"column":"row"}}>
-            {/* Map - scrollable on mobile for pan */}
             <div style={{flex:"1 1 0",padding:mobile?6:12,minWidth:0,overflow:mobile?"auto":"hidden",WebkitOverflowScrolling:"touch"}}>
               <svg viewBox="0 0 1420 750" style={{width:mobile?"200%":"100%",minWidth:mobile?700:undefined,background:"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:"1px solid rgba(0,255,120,0.1)"}}>
                 <defs>
@@ -133,96 +107,38 @@ export default function App() {
                 <text x={(RW.x1+RW.x2)/2-65} y={(RW.y1+RW.y2)/2-15} fontSize="9" fill="rgba(200,200,200,0.3)" fontFamily="Oxanium,sans-serif" letterSpacing="2" transform={`rotate(${rwA},${(RW.x1+RW.x2)/2-65},${(RW.y1+RW.y2)/2-15})`}>RUNWAY 04/22</text>
                 <line x1={C2P.x} y1={C2P.y} x2={C2S.x} y2={C2S.y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>
                 <text x={(C2P.x+C2S.x)/2} y={(C2P.y+C2S.y)/2-8} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.35)" fontFamily="Oxanium,sans-serif" letterSpacing="1">FIBER BACKBONE</text>
-
                 {ly.fc&&FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
-
                 {ly.rf&&N.filter(n=>n.t==="s").map(n=><circle key={`c${n.id}`} cx={n.x} cy={n.y} r={eff?100+eff.rfSensor*0.4:140} fill={eff?effColor(eff.rfSensor,0.06):"url(#sg)"} stroke={eff?effColor(eff.rfSensor,0.2):"rgba(0,180,255,0.06)"} strokeWidth={eff?1.2:0.5}/>)}
                 {ly.ea&&N.filter(n=>n.t==="e").map(n=><circle key={`e${n.id}`} cx={n.x} cy={n.y} r={eff?60+eff.eaNode*0.3:90} fill={eff?effColor(eff.eaNode,0.05):"url(#eg)"} stroke={eff?effColor(eff.eaNode,0.25):"rgba(255,60,60,0.12)"} strokeWidth={eff?1.5:1} strokeDasharray="4,3"/>)}
                 {ly.rd&&R.map(r=><circle key={`rv${r.id}`} cx={r.x} cy={r.y} r={eff?80+eff.radar*0.4:120} fill={eff?effColor(eff.radar,0.06):"url(#rg)"} stroke={eff?effColor(eff.radar,0.2):"rgba(0,204,102,0.12)"} strokeWidth={eff?1.5:1.5} strokeDasharray="6,4"/>)}
                 {ly.ac&&AC.map(a=><circle key={`av${a.id}`} cx={a.x} cy={a.y} r={eff?25+eff.acoustic*0.25:45} fill={eff?effColor(eff.acoustic,0.08):"url(#ag)"} stroke={eff?effColor(eff.acoustic,0.25):"rgba(160,112,208,0.15)"} strokeWidth={eff?1.2:1} strokeDasharray="3,3"/>)}
-
                 {ly.ms&&mLinks.map(([a,b],i)=><line key={i} x1={N[a].x} y1={N[a].y} x2={N[b].x} y2={N[b].y} stroke="rgba(0,255,120,0.06)" strokeWidth="0.6"/>)}
-                {ly.ms&&N.filter(n=>n.t==="e").map(n=>{const tgt=n.x<900?C2P:C2S;return<line key={`c${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
-                {ly.ms&&R.map(r=>{const tgt=r.x<900?C2P:C2S;return<line key={`cr${r.id}`} x1={r.x} y1={r.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
-
+                {ly.ms&&N.filter(n=>n.t==="e").map(n=>{const tgt=n.x<900?C2P:C2S;return<line key={`c${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>;})}
+                {ly.ms&&R.map(r=>{const tgt=r.x<900?C2P:C2S;return<line key={`cr${r.id}`} x1={r.x} y1={r.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>;})}
                 {[C2P,C2S].map((c2,i)=><g key={c2.l} style={{cursor:"pointer"}} onMouseEnter={()=>hv(`c2${i}`,"c2")} onMouseLeave={lv} onClick={()=>cl(`c2${i}`,"c2")} filter={isA(`c2${i}`)?"url(#gl)":undefined}><rect x={c2.x-35} y={c2.y-16} width={70} height={32} fill={isA(`c2${i}`)?"rgba(255,200,0,0.3)":"rgba(255,200,0,0.1)"} stroke="rgba(255,200,0,0.6)" strokeWidth="1.5" rx="4"/><text x={c2.x} y={c2.y} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.9)" fontFamily="Oxanium,sans-serif" fontWeight="700" letterSpacing="0.5">{c2.l}</text><text x={c2.x} y={c2.y+10} textAnchor="middle" fontSize="5.5" fill="rgba(255,200,0,0.45)">FUSION</text></g>)}
-
                 {ly.eo&&EO.map(t=><g key={t.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(t.id,"eo")} onMouseLeave={lv} onClick={()=>cl(t.id,"eo")} filter={isA(t.id)?"url(#gl)":undefined}><circle cx={t.x} cy={t.y} r={mobile?12:8} fill="none" stroke={isA(t.id)?"#e0a030":eff?effColor(eff.eoir,0.6):"rgba(224,160,48,0.4)"} strokeWidth={isA(t.id)?2:1.2}/><circle cx={t.x} cy={t.y} r={mobile?5:3.5} fill={isA(t.id)?"#e0a030":eff?effColor(eff.eoir,0.7):"rgba(224,160,48,0.5)"}/><text x={t.x} y={t.y+(mobile?26:20)} textAnchor="middle" fontSize={mobile?"7":"5.5"} fill={isA(t.id)?"#fff":"rgba(224,160,48,0.45)"}>{t.id}</text></g>)}
-
                 {ly.ac&&AC.map(a=><g key={a.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(a.id,"ac")} onMouseLeave={lv} onClick={()=>cl(a.id,"ac")} filter={isA(a.id)?"url(#gl)":undefined}><circle cx={a.x} cy={a.y} r={mobile?10:7} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.6)":"rgba(160,112,208,0.2)"} strokeWidth="0.7"/><circle cx={a.x} cy={a.y} r={mobile?14:11} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.4)":"rgba(160,112,208,0.12)"} strokeWidth="0.5"/><circle cx={a.x} cy={a.y} r={mobile?6:4} fill={isA(a.id)?"#a070d0":eff?effColor(eff.acoustic,0.7):"rgba(160,112,208,0.45)"}/><text x={a.x} y={a.y+(mobile?24:20)} textAnchor="middle" fontSize={mobile?"6":"5"} fill={isA(a.id)?"#fff":"rgba(160,112,208,0.35)"}>{a.id}</text></g>)}
-
                 {R.map(r=><g key={r.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(r.id,"r")} onMouseLeave={lv} onClick={()=>cl(r.id,"r")} filter={isA(r.id)?"url(#gl)":undefined}><rect x={r.x-(mobile?12:9)} y={r.y-(mobile?12:9)} width={mobile?24:18} height={mobile?24:18} fill={isA(r.id)?"#00cc66":eff?effColor(eff.radar,0.5):"rgba(0,204,102,0.3)"} stroke={eff?effColor(eff.radar,1):"#00cc66"} strokeWidth={isA(r.id)?2.5:1.5} rx="2" transform={`rotate(45,${r.x},${r.y})`}/><text x={r.x} y={r.y+4} textAnchor="middle" fontSize={mobile?"9":"7"} fill="#fff" fontFamily="Oxanium,sans-serif" fontWeight="700">R</text><text x={r.x} y={r.y+(mobile?28:24)} textAnchor="middle" fontSize={mobile?"7":"6"} fill={isA(r.id)?"#fff":"rgba(0,204,102,0.5)"}>{r.id}</text></g>)}
-
                 {N.map(n=>{const s=n.t==="s";const co=s?"#00b4ff":"#ff3c3c";const sz=mobile?(s?9:11):(s?6:8);const a=isA(n.id);const nEff=eff?(s?eff.rfSensor:eff.eaNode):null;const nCol=nEff!==null?effColor(nEff,0.8):co;return(
                   <g key={n.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(n.id,n.t)} onMouseLeave={lv} onClick={()=>cl(n.id,n.t)} filter={a?"url(#gl)":undefined}>
-                    <circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                    <circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                    <circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                    {s?<circle cx={n.x} cy={n.y} r={sz} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>
-                      :<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>}
+                    <circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
+                    {s?<circle cx={n.x} cy={n.y} r={sz} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>:<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>}
                     <text x={n.x} y={n.y+(s?(mobile?24:19):(mobile?28:23))} textAnchor="middle" fontSize={mobile?"7":"5.5"} fill={a?"#fff":`${co}55`}>{n.id}</text>
-                  </g>
-                );})}
-
+                  </g>);})}
                 <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
                 <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
               </svg>
             </div>
-
-            {/* Desktop sidebar */}
             {!mobile&&<div style={{flex:"0 0 310px",padding:"12px 16px 12px 4px",display:"flex",flexDirection:"column",gap:10,overflowY:"auto"}}>
-              <Blk t="LAYER CONTROLS">
-                {[{k:"rf",l:"RF Sensor (2-3 km)",c:"#00b4ff"},{k:"ea",l:"EA Range (1.2 km)",c:"#ff3c3c"},{k:"rd",l:"Radar (1 km)",c:"#00cc66"},{k:"ac",l:"Acoustic (300-500m)",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=>(
-                  <label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}>
-                    <div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}</div>
-                    <span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span>
-                  </label>
-                ))}
-              </Blk>
+              <Blk t="LAYER CONTROLS">{[{k:"rf",l:"RF Sensor (2-3 km)",c:"#00b4ff"},{k:"ea",l:"EA Range (1.2 km)",c:"#ff3c3c"},{k:"rd",l:"Radar (1 km)",c:"#00cc66"},{k:"ac",l:"Acoustic (300-500m)",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=><label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}><div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}</div><span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span></label>)}</Blk>
               <div style={{background:tip?`linear-gradient(135deg,${tip.color}08,${tip.color}03)`:"rgba(255,255,255,0.02)",border:`1px solid ${tip?tip.color+"40":"rgba(0,255,120,0.1)"}`,borderRadius:8,padding:13,transition:"all 0.3s",minHeight:tip?"auto":90}}>
-                {tip?(<div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{fontSize:20,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div></div></div>
-                  <div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div>
-                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>
-                  {tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}
-                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>
-                  {tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}
-                  <div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div>
-                </div>):(<div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div><div style={{fontSize:9,color:"#303a44",marginTop:2}}>view technology details & kill chain role</div></div>)}
+                {tip?(<div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{fontSize:20,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div></div></div><div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div></div>):(<div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div><div style={{fontSize:9,color:"#303a44",marginTop:2}}>view technology details & kill chain role</div></div>)}
               </div>
-              <Blk t="SYSTEM INVENTORY">
-                {[["◉","#00b4ff","RF Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes","10 (30 DF)"],["◆","#00cc66","Radars","30 (10 towers)"],["◎","#a070d0","Acoustic","24 (MEMS)"],["◐","#e0a030","EO/IR","12 (thermal)"],["■","#ffcc00","C2","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=><div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div><span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span></div>)}
-                <div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span><span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span></div>
-              </Blk>
+              <Blk t="SYSTEM INVENTORY">{[["◉","#00b4ff","RF Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes","10 (30 DF)"],["◆","#00cc66","Radars","30 (10 towers)"],["◎","#a070d0","Acoustic","24 (MEMS)"],["◐","#e0a030","EO/IR","12 (thermal)"],["■","#ffcc00","C2","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=><div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div><span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span></div>)}<div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span><span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span></div></Blk>
             </div>}
-
-            {/* Mobile: bottom sheet for node details */}
-            {mobile&&tip&&showPanel&&(
-              <div style={{position:"fixed",bottom:0,left:0,right:0,maxHeight:"60vh",overflow:"auto",background:"#0a0e14",borderTop:"2px solid "+tip.color,borderRadius:"16px 16px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.6)",zIndex:20,WebkitOverflowScrolling:"touch",padding:16}}>
-                <div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 12px"}}/>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:14,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:9,color:tip.color,letterSpacing:2,fontWeight:600}}>{tip.role}</div></div></div>
-                  <button onClick={()=>{setShowPanel(false);setPin(null);}} style={{background:"none",border:"none",color:"#506070",fontSize:24,cursor:"pointer",padding:8,minWidth:44,minHeight:44}}>✕</button>
-                </div>
-                <div style={{fontSize:11,color:"#8898a8",lineHeight:1.55,margin:"10px 0"}}>{tip.what}</div>
-                <div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,marginBottom:6}}>HOW IT WORKS</div>
-                {tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:5,fontSize:10,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}
-                <div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,margin:"10px 0 6px"}}>KEY SPECS</div>
-                {tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:11}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}
-                <div style={{background:`${tip.color}15`,borderRadius:6,padding:"8px",fontSize:11,color:tip.color,textAlign:"center",fontWeight:600,marginTop:10}}>{tip.count}</div>
-              </div>
-            )}
-
-            {/* Mobile: floating layer toggle */}
-            {mobile&&!showPanel&&(
-              <div style={{position:"fixed",bottom:12,right:12,display:"flex",gap:6,zIndex:10}}>
-                {[{k:"rf",c:"#00b4ff",l:"RF"},{k:"ea",c:"#ff3c3c",l:"EA"},{k:"rd",c:"#00cc66",l:"R"},{k:"ac",c:"#a070d0",l:"A"},{k:"eo",c:"#e0a030",l:"E"},{k:"fc",c:"#ffb428",l:"F"}].map(({k,c,l})=>
-                  <button key={k} onClick={()=>tg(k)} style={{width:36,height:36,borderRadius:18,border:`2px solid ${c}`,background:ly[k]?`${c}30`:"rgba(6,10,16,0.9)",color:ly[k]?c:"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{l}</button>
-                )}
-              </div>
-            )}
+            {mobile&&tip&&showPanel&&(<div style={{position:"fixed",bottom:0,left:0,right:0,maxHeight:"60vh",overflow:"auto",background:"#0a0e14",borderTop:"2px solid "+tip.color,borderRadius:"16px 16px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.6)",zIndex:20,WebkitOverflowScrolling:"touch",padding:16}}><div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 12px"}}/><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:14,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:9,color:tip.color,letterSpacing:2,fontWeight:600}}>{tip.role}</div></div></div><button onClick={()=>{setShowPanel(false);setPin(null);}} style={{background:"none",border:"none",color:"#506070",fontSize:24,cursor:"pointer",padding:8,minWidth:44,minHeight:44}}>✕</button></div><div style={{fontSize:11,color:"#8898a8",lineHeight:1.55,margin:"10px 0"}}>{tip.what}</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,marginBottom:6}}>HOW IT WORKS</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:5,fontSize:10,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,margin:"10px 0 6px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:11}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:6,padding:"8px",fontSize:11,color:tip.color,textAlign:"center",fontWeight:600,marginTop:10}}>{tip.count}</div></div>)}
+            {mobile&&!showPanel&&(<div style={{position:"fixed",bottom:12,right:12,display:"flex",gap:6,zIndex:10}}>{[{k:"rf",c:"#00b4ff",l:"RF"},{k:"ea",c:"#ff3c3c",l:"EA"},{k:"rd",c:"#00cc66",l:"R"},{k:"ac",c:"#a070d0",l:"A"},{k:"eo",c:"#e0a030",l:"E"},{k:"fc",c:"#ffb428",l:"F"}].map(({k,c,l})=><button key={k} onClick={()=>tg(k)} style={{width:36,height:36,borderRadius:18,border:`2px solid ${c}`,background:ly[k]?`${c}30`:"rgba(6,10,16,0.9)",color:ly[k]?c:"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{l}</button>)}</div>)}
           </div>
-
           {!mobile&&<footer style={{padding:"10px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:8,color:"#303a44",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,flexShrink:0}}><span>DoDAF SV-1 · Full Shaw AFB C-UAS Architecture</span><span>40 RF/EA · 120 DF · 30 radars · 24 acoustic · 12 EO/IR · 2 C2</span></footer>}
         </div>
       )}
