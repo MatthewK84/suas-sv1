@@ -1,11 +1,5 @@
 /**
  * Shaw AFB cUAS SV-1 — Threat Database & Scoring Engine v2
- *
- * Enhancements over v1:
- *  - Refined acoustic model: prop count, estimated prop diameter, VTOL cruise penalty
- *  - Hardened/modified threat profiles: RF-silent, custom firmware, GPS-denied,
- *    cellular-disabled, terrain masking, swarm tactics
- *  - Per-node detection probability for map overlay
  */
 
 const DRONES = [
@@ -104,150 +98,35 @@ const DRONES = [
   {n:"Matternet M2",m:"Matternet",c:"Cargo",p:"Multirotor",w:9750,s:22,ft:20,pr:null,proto:"Custom ISM",rtk:true,wp:true,cell:true,enc:true,auto:true,fs:"RTH",props:4,pd:20},
 ];
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const INJECTABLE = new Set([
-  "OcuSync","OcuSync 2","OcuSync 3","OcuSync 3+","OcuSync 4","OcuSync 4+",
-  "OcuSync O4","OcuSync O4+","OcuSync 2 Enterprise","OcuSync 3 Enterprise",
-  "OcuSync 4 Enterprise","Lightbridge","Lightbridge 2","Enhanced WiFi","WiFi","WiFi 6",
-]);
-
-const JAM_DIFF = {
-  "WiFi":10,"Enhanced WiFi":15,"WiFi 6":25,"Lightbridge":20,"Lightbridge 2":25,
-  "OcuSync":35,"OcuSync 2":40,"OcuSync 3":45,"OcuSync 3+":48,"OcuSync 4":52,"OcuSync 4+":55,
-  "OcuSync O4":50,"OcuSync O4+":53,"OcuSync 2 Enterprise":50,"OcuSync 3 Enterprise":55,
-  "OcuSync 4 Enterprise":60,"SkyLink 2":55,"SkyLink 3":60,"Skydio Link":60,
-  "Microhard":65,"Futaba S-FHSS":30,"Custom ISM":55,
-};
-
+const INJECTABLE = new Set(["OcuSync","OcuSync 2","OcuSync 3","OcuSync 3+","OcuSync 4","OcuSync 4+","OcuSync O4","OcuSync O4+","OcuSync 2 Enterprise","OcuSync 3 Enterprise","OcuSync 4 Enterprise","Lightbridge","Lightbridge 2","Enhanced WiFi","WiFi","WiFi 6"]);
+const JAM_DIFF = {"WiFi":10,"Enhanced WiFi":15,"WiFi 6":25,"Lightbridge":20,"Lightbridge 2":25,"OcuSync":35,"OcuSync 2":40,"OcuSync 3":45,"OcuSync 3+":48,"OcuSync 4":52,"OcuSync 4+":55,"OcuSync O4":50,"OcuSync O4+":53,"OcuSync 2 Enterprise":50,"OcuSync 3 Enterprise":55,"OcuSync 4 Enterprise":60,"SkyLink 2":55,"SkyLink 3":60,"Skydio Link":60,"Microhard":65,"Futaba S-FHSS":30,"Custom ISM":55};
 const cl = (v) => Math.max(0, Math.min(100, Math.round(v)));
 
-// ── Hardened Mode Definitions ─────────────────────────────────────────────────
-
 export const HARDENED_MODS = {
-  rfSilent:    { label:"RF-Silent Mode", desc:"Controller off, pre-programmed waypoint mission — no RF emissions for DF/TDOA", icon:"📡" },
-  customFW:    { label:"Custom Firmware", desc:"Modified firmware removes known protocol signatures — protocol injection fails", icon:"🔧" },
-  gpsDenied:   { label:"GPS-Denied Nav", desc:"Inertial/visual navigation — GPS L1 spoofing cannot redirect", icon:"🛰️" },
-  noCell:      { label:"Cellular Disabled", desc:"No cellular backup — removes redundant C2, jamming more effective", icon:"📶" },
-  terrainMask: { label:"Terrain Masking", desc:"NOE flight using terrain/buildings — reduces radar and EO/IR windows", icon:"🏔️" },
-  swarm:       { label:"Swarm Tactics", desc:"Multiple coordinated platforms — overwhelms single-node EA engagement", icon:"🐝" },
+  rfSilent:    { label:"RF-Silent Mode", desc:"No RF emissions for DF/TDOA", icon:"📡" },
+  customFW:    { label:"Custom Firmware", desc:"Protocol injection fails", icon:"🔧" },
+  gpsDenied:   { label:"GPS-Denied Nav", desc:"GPS spoofing cannot redirect", icon:"🛰️" },
+  noCell:      { label:"Cellular Disabled", desc:"Jamming more effective", icon:"📶" },
+  terrainMask: { label:"Terrain Masking", desc:"Reduces radar & EO/IR", icon:"🏔️" },
+  swarm:       { label:"Swarm Tactics", desc:"Overwhelms single-node EA", icon:"🐝" },
 };
 
-// ── Scoring Functions ─────────────────────────────────────────────────────────
+function scoreRF(d,mo){if(mo.rfSilent)return 5;let b=85;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")b=95;else if(p.includes("Lightbridge"))b=92;else if(p.includes("OcuSync"))b=88;else if(p.includes("SkyLink"))b=80;else if(p.includes("Skydio"))b=78;else if(p.includes("Microhard"))b=72;else if(p.includes("Custom"))b=65;else if(p.includes("Futaba"))b=90;if(d.cell&&!mo.noCell)b-=5;if(d.enc)b-=3;return cl(b);}
+function scoreAcoustic(d,mo){const w=d.w;const pf=Math.min(1,(d.pd||8)/20);const cb=((d.props||4)-4)*3;let b;if(w<=200)b=20;else if(w<=300)b=30;else if(w<=500)b=42;else if(w<=1000)b=52;else if(w<=2000)b=62;else if(w<=5000)b=72+pf*8;else if(w<=10000)b=82+pf*6;else b=88+pf*5;b+=cb;if(d.p==="VTOL")b-=18;if(mo.terrainMask)b-=12;return cl(b);}
+function scoreRadar(d,mo){let b=20+55*Math.min(1,Math.pow(d.w/50000,0.4));if(d.p==="VTOL")b+=10;if(d.w>5000)b=Math.min(b+8,98);if(mo.terrainMask)b-=18;return cl(b);}
+function scoreEOIR(d,mo){const w=d.w;let b=w<=200?28:w<=300?38:w<=500?48:w<=1000?58:w<=2000?68:w<=5000?78:w<=10000?88:95;if(mo.terrainMask)b-=15;return cl(b);}
+function scoreProtoInject(d,mo){if(mo.customFW)return 2;if(mo.rfSilent)return 0;if(!INJECTABLE.has(d.proto))return 10;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")return 92;if(p.includes("Lightbridge"))return 85;if(p.includes("Enterprise"))return 60;if(p.includes("4")||p.includes("O4"))return 65;if(p.includes("3"))return 70;if(p.includes("2"))return 78;return 80;}
+function scoreJamming(d,mo){if(mo.rfSilent)return 15;let b=100-(JAM_DIFF[d.proto]||50);if(d.cell&&!mo.noCell)b-=15;if(d.enc)b-=5;if(mo.swarm)b-=25;return cl(b);}
+function scoreGPS(d,mo){if(mo.gpsDenied)return 5;let b=80;if(d.rtk)b-=35;if(!d.auto)b+=10;return cl(b);}
+function riskTier(r){if(r<=15)return"LOW";if(r<=35)return"MODERATE";if(r<=55)return"ELEVATED";if(r<=75)return"HIGH";return"CRITICAL";}
 
-function scoreRF(d, mods) {
-  if (mods.rfSilent) return 5;
-  let b = 85;
-  const p = d.proto;
-  if (p.includes("WiFi") || p === "Enhanced WiFi") b = 95;
-  else if (p.includes("Lightbridge")) b = 92;
-  else if (p.includes("OcuSync")) b = 88;
-  else if (p.includes("SkyLink")) b = 80;
-  else if (p.includes("Skydio")) b = 78;
-  else if (p.includes("Microhard")) b = 72;
-  else if (p.includes("Custom")) b = 65;
-  else if (p.includes("Futaba")) b = 90;
-  if (d.cell && !mods.noCell) b -= 5;
-  if (d.enc) b -= 3;
-  return cl(b);
+export function analyzeDrone(d, mods={}) {
+  const rd=scoreRF(d,mods),ad=scoreAcoustic(d,mods),rad=scoreRadar(d,mods),ed=scoreEOIR(d,mods);
+  const pi=scoreProtoInject(d,mods),jm=scoreJamming(d,mods),gs=scoreGPS(d,mods);
+  const cd=cl((1-(1-rd/100)*(1-ad/100)*(1-rad/100)*(1-ed/100))*100);
+  const cdf=cl((1-(1-pi/100)*(1-jm/100)*(1-gs/100))*100);
+  const or_=cl((1-(cd/100)*(cdf/100))*100);
+  return {...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:riskTier(or_)};
 }
-
-function scoreAcoustic(d, mods) {
-  const w = d.w;
-  const propFactor = Math.min(1, (d.pd || 8) / 20);
-  const countBonus = ((d.props || 4) - 4) * 3;
-  let b;
-  if (w <= 200) b = 20; else if (w <= 300) b = 30; else if (w <= 500) b = 42;
-  else if (w <= 1000) b = 52; else if (w <= 2000) b = 62;
-  else if (w <= 5000) b = 72 + propFactor * 8;
-  else if (w <= 10000) b = 82 + propFactor * 6;
-  else b = 88 + propFactor * 5;
-  b += countBonus;
-  if (d.p === "VTOL") b -= 18;
-  if (mods.terrainMask) b -= 12;
-  return cl(b);
-}
-
-function scoreRadar(d, mods) {
-  let b = 20 + 55 * Math.min(1, Math.pow(d.w / 50000, 0.4));
-  if (d.p === "VTOL") b += 10;
-  if (d.w > 5000) b = Math.min(b + 8, 98);
-  if (mods.terrainMask) b -= 18;
-  return cl(b);
-}
-
-function scoreEOIR(d, mods) {
-  const w = d.w;
-  let b = w <= 200 ? 28 : w <= 300 ? 38 : w <= 500 ? 48 : w <= 1000 ? 58
-    : w <= 2000 ? 68 : w <= 5000 ? 78 : w <= 10000 ? 88 : 95;
-  if (mods.terrainMask) b -= 15;
-  return cl(b);
-}
-
-function scoreProtoInject(d, mods) {
-  if (mods.customFW) return 2;
-  if (mods.rfSilent) return 0;
-  if (!INJECTABLE.has(d.proto)) return 10;
-  const p = d.proto;
-  if (p.includes("WiFi") || p === "Enhanced WiFi") return 92;
-  if (p.includes("Lightbridge")) return 85;
-  if (p.includes("Enterprise")) return 60;
-  if (p.includes("4") || p.includes("O4")) return 65;
-  if (p.includes("3")) return 70;
-  if (p.includes("2")) return 78;
-  return 80;
-}
-
-function scoreJamming(d, mods) {
-  if (mods.rfSilent) return 15;
-  let b = 100 - (JAM_DIFF[d.proto] || 50);
-  if (d.cell && !mods.noCell) b -= 15;
-  if (d.enc) b -= 5;
-  if (mods.swarm) b -= 25;
-  return cl(b);
-}
-
-function scoreGPS(d, mods) {
-  if (mods.gpsDenied) return 5;
-  let b = 80;
-  if (d.rtk) b -= 35;
-  if (!d.auto) b += 10;
-  return cl(b);
-}
-
-function riskTier(r) {
-  if (r <= 15) return "LOW";
-  if (r <= 35) return "MODERATE";
-  if (r <= 55) return "ELEVATED";
-  if (r <= 75) return "HIGH";
-  return "CRITICAL";
-}
-
-// ── Analysis Functions ────────────────────────────────────────────────────────
-
-export function analyzeDrone(d, mods = {}) {
-  const rd = scoreRF(d, mods), ad = scoreAcoustic(d, mods);
-  const rad = scoreRadar(d, mods), ed = scoreEOIR(d, mods);
-  const pi = scoreProtoInject(d, mods), jm = scoreJamming(d, mods);
-  const gs = scoreGPS(d, mods);
-  const pMiss = (1-rd/100)*(1-ad/100)*(1-rad/100)*(1-ed/100);
-  const cd = cl((1-pMiss)*100);
-  const pSurv = (1-pi/100)*(1-jm/100)*(1-gs/100);
-  const cdf = cl((1-pSurv)*100);
-  const or_ = cl((1-(cd/100)*(cdf/100))*100);
-  return { ...d, rd, ad, rad, ed, cd, pi, jm, gs, cdf, or: or_, rt: riskTier(or_) };
-}
-
-export function analyzeDrones(mods = {}) {
-  return DRONES.map(d => analyzeDrone(d, mods)).sort((a, b) => b.or - a.or);
-}
-
-export function getNodeEffectiveness(scored) {
-  return {
-    rfSensor: scored.rd,
-    eaNode:   Math.round((scored.pi + scored.jm + scored.gs) / 3),
-    radar:    scored.rad,
-    acoustic: scored.ad,
-    eoir:     scored.ed,
-  };
-}
+export function analyzeDrones(mods={}) { return DRONES.map(d=>analyzeDrone(d,mods)).sort((a,b)=>b.or-a.or); }
+export function getNodeEffectiveness(scored) { return { rfSensor:scored.rd, eaNode:Math.round((scored.pi+scored.jm+scored.gs)/3), radar:scored.rad, acoustic:scored.ad, eoir:scored.ed }; }
