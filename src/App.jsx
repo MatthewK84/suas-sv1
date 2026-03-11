@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ThreatMatrix from "./ThreatMatrix";
 
 function useFonts() {
   useEffect(() => {
@@ -35,24 +36,19 @@ const FAC = [
 
 // 30 Passive RF Sensor Clusters + 10 EA Nodes
 const N = [
-  // West perimeter
   {id:"S01",x:185,y:140,t:"s"},{id:"S02",x:360,y:100,t:"s"},{id:"S03",x:540,y:85,t:"s"},
   {id:"S04",x:720,y:90,t:"s"},{id:"S05",x:880,y:140,t:"s"},{id:"S06",x:960,y:260,t:"s"},
   {id:"S07",x:960,y:400,t:"s"},{id:"S08",x:770,y:610,t:"s"},{id:"S09",x:540,y:645,t:"s"},
   {id:"S10",x:360,y:635,t:"s"},{id:"S11",x:200,y:565,t:"s"},{id:"S12",x:140,y:430,t:"s"},
   {id:"S13",x:135,y:270,t:"s"},
-  // West interior
   {id:"S14",x:400,y:270,t:"s"},{id:"S15",x:600,y:320,t:"s"},{id:"S16",x:300,y:380,t:"s"},
   {id:"S17",x:570,y:500,t:"s"},
-  // East perimeter
   {id:"S18",x:1010,y:450,t:"s"},{id:"S19",x:1100,y:500,t:"s"},{id:"S20",x:1250,y:520,t:"s"},
   {id:"S21",x:1310,y:580,t:"s"},{id:"S22",x:1250,y:660,t:"s"},{id:"S23",x:1100,y:680,t:"s"},
   {id:"S24",x:960,y:660,t:"s"},
-  // East interior + connector
   {id:"S25",x:1050,y:580,t:"s"},{id:"S26",x:1180,y:600,t:"s"},
   {id:"S27",x:880,y:540,t:"s"},{id:"S28",x:680,y:560,t:"s"},
   {id:"S29",x:450,y:180,t:"s"},{id:"S30",x:820,y:350,t:"s"},
-  // 10 EA Nodes
   {id:"EA01",x:440,y:190,t:"e"},{id:"EA02",x:650,y:260,t:"e"},{id:"EA03",x:340,y:510,t:"e"},
   {id:"EA04",x:730,y:440,t:"e"},{id:"EA05",x:500,y:430,t:"e"},{id:"EA06",x:850,y:200,t:"e"},
   {id:"EA07",x:1020,y:560,t:"e"},{id:"EA08",x:1200,y:580,t:"e"},{id:"EA09",x:950,y:530,t:"e"},
@@ -70,38 +66,26 @@ const R = [
 
 // 24 Acoustic Arrays
 const AC = [
-  // West perimeter (denser near HVTs)
   {id:"A01",x:210,y:165},{id:"A02",x:390,y:115},{id:"A03",x:565,y:100},
   {id:"A04",x:740,y:105},{id:"A05",x:895,y:160},{id:"A06",x:945,y:290},
   {id:"A07",x:945,y:420},{id:"A08",x:750,y:595},{id:"A09",x:555,y:640},
   {id:"A10",x:380,y:630},{id:"A11",x:215,y:545},{id:"A12",x:148,y:395},
   {id:"A13",x:148,y:250},
-  // Flight line / munitions interior
   {id:"A14",x:430,y:255},{id:"A15",x:620,y:290},{id:"A16",x:780,y:240},
-  // East perimeter
   {id:"A17",x:1030,y:470},{id:"A18",x:1130,y:510},{id:"A19",x:1280,y:540},
   {id:"A20",x:1290,y:640},{id:"A21",x:1120,y:670},
-  // ARCENT interior
   {id:"A22",x:1060,y:560},{id:"A23",x:1170,y:620},
-  // Connector
   {id:"A24",x:860,y:560},
 ];
 
 // 12 EO/IR Turrets
 const EO = [
-  // Flight line (2)
   {id:"T01",x:420,y:305,d:"Flight Line West"},{id:"T02",x:560,y:310,d:"Flight Line East"},
-  // Munitions (1)
   {id:"T03",x:770,y:185,d:"Munitions Storage"},
-  // Cantonment (1)
   {id:"T04",x:350,y:465,d:"Cantonment"},
-  // Approach corridors west (2)
   {id:"T05",x:230,y:200,d:"NW Approach"},{id:"T06",x:230,y:500,d:"SW Approach"},
-  // East approaches (2)
   {id:"T07",x:870,y:160,d:"NE Approach"},{id:"T08",x:800,y:580,d:"SE Connector"},
-  // ARCENT (2)
   {id:"T09",x:1040,y:500,d:"ARCENT North"},{id:"T10",x:1080,y:620,d:"ARCENT South"},
-  // CATM / East (2)
   {id:"T11",x:1240,y:545,d:"CATM Approach"},{id:"T12",x:1160,y:660,d:"East Perimeter"},
 ];
 
@@ -161,6 +145,7 @@ const pS=p=>p==="C"?"rgba(255,60,60,0.6)":p==="H"?"rgba(255,180,40,0.5)":"rgba(1
 
 export default function App() {
   useFonts();
+  const [view,setView]=useState("map");
   const [act,setAct]=useState(null);
   const [pin,setPin]=useState(null);
   const [ly,setLy]=useState({rf:true,ea:true,rd:true,ac:true,eo:true,ms:true,fc:true});
@@ -177,7 +162,11 @@ export default function App() {
       <header style={{padding:"16px 24px 12px",borderBottom:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:12}}>
         <div>
           <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:5,fontWeight:300}}>DODAF SV-1 SYSTEMS INTERFACE DESCRIPTION</div>
-          <h1 style={{fontFamily:"'Oxanium',sans-serif",fontSize:20,fontWeight:700,color:"#e4ecf4",margin:"4px 0 0",letterSpacing:1.5}}>MULTI-MODAL C-UAS — FULL SHAW AFB COVERAGE</h1>
+          <div style={{display:"flex",alignItems:"baseline",gap:16,margin:"4px 0 0"}}>
+            <h1 onClick={()=>setView("map")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:20,fontWeight:700,color:view==="map"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",transition:"color 0.2s"}}>SV-1 MAP</h1>
+            <span style={{color:"#1a3a2a",fontSize:20}}>|</span>
+            <h1 onClick={()=>setView("threat")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:20,fontWeight:700,color:view==="threat"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",transition:"color 0.2s"}}>THREAT MATRIX</h1>
+          </div>
           <div style={{fontSize:10,color:"#506070",marginTop:3}}>Shaw AFB, Sumter SC&ensp;•&ensp;Main Cantonment + ARCENT East&ensp;•&ensp;4 Phenomenologies&ensp;•&ensp;All Nodes Interior</div>
         </div>
         <div style={{fontSize:10,color:"#506070",textAlign:"right",lineHeight:1.7}}>
@@ -186,182 +175,187 @@ export default function App() {
         </div>
       </header>
 
-      <div style={{display:"flex",gap:0}}>
-        <div style={{flex:"1 1 0",padding:12,minWidth:0}}>
-          <svg viewBox="0 0 1420 750" style={{width:"100%",background:"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:"1px solid rgba(0,255,120,0.1)"}}>
-            <defs>
-              <radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,180,255,0.08)"/><stop offset="100%" stopColor="rgba(0,180,255,0)"/></radialGradient>
-              <radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,60,60,0.07)"/><stop offset="100%" stopColor="rgba(255,60,60,0)"/></radialGradient>
-              <radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,204,102,0.08)"/><stop offset="100%" stopColor="rgba(0,204,102,0)"/></radialGradient>
-              <radialGradient id="ag" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(160,112,208,0.1)"/><stop offset="100%" stopColor="rgba(160,112,208,0)"/></radialGradient>
-              <filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              <pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,120,0.02)" strokeWidth="0.5"/></pattern>
-            </defs>
-            <rect width="1420" height="750" fill="url(#gr)"/>
-            <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
-            <text x="125" y="148" fontSize="7" fill="rgba(0,255,120,0.45)" fontFamily="Oxanium,sans-serif" letterSpacing="2">INSTALLATION BOUNDARY</text>
-            <text x="460" y="52" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">MAIN CANTONMENT</text>
-            <text x="1120" y="470" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">ARCENT EAST</text>
+      {view==="threat" ? (
+        <ThreatMatrix />
+      ) : (
+        <>
+          <div style={{display:"flex",gap:0}}>
+            <div style={{flex:"1 1 0",padding:12,minWidth:0}}>
+              <svg viewBox="0 0 1420 750" style={{width:"100%",background:"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:"1px solid rgba(0,255,120,0.1)"}}>
+                <defs>
+                  <radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,180,255,0.08)"/><stop offset="100%" stopColor="rgba(0,180,255,0)"/></radialGradient>
+                  <radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,60,60,0.07)"/><stop offset="100%" stopColor="rgba(255,60,60,0)"/></radialGradient>
+                  <radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,204,102,0.08)"/><stop offset="100%" stopColor="rgba(0,204,102,0)"/></radialGradient>
+                  <radialGradient id="ag" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(160,112,208,0.1)"/><stop offset="100%" stopColor="rgba(160,112,208,0)"/></radialGradient>
+                  <filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  <pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,120,0.02)" strokeWidth="0.5"/></pattern>
+                </defs>
+                <rect width="1420" height="750" fill="url(#gr)"/>
+                <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
+                <text x="125" y="148" fontSize="7" fill="rgba(0,255,120,0.45)" fontFamily="Oxanium,sans-serif" letterSpacing="2">INSTALLATION BOUNDARY</text>
+                <text x="460" y="52" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">MAIN CANTONMENT</text>
+                <text x="1120" y="470" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">ARCENT EAST</text>
 
-            <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(200,200,200,0.2)" strokeWidth={RW.w}/>
-            <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="20,16"/>
-            <text x={(RW.x1+RW.x2)/2-65} y={(RW.y1+RW.y2)/2-15} fontSize="9" fill="rgba(200,200,200,0.3)" fontFamily="Oxanium,sans-serif" letterSpacing="2" transform={`rotate(${rwA},${(RW.x1+RW.x2)/2-65},${(RW.y1+RW.y2)/2-15})`}>RUNWAY 04/22</text>
+                <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(200,200,200,0.2)" strokeWidth={RW.w}/>
+                <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="20,16"/>
+                <text x={(RW.x1+RW.x2)/2-65} y={(RW.y1+RW.y2)/2-15} fontSize="9" fill="rgba(200,200,200,0.3)" fontFamily="Oxanium,sans-serif" letterSpacing="2" transform={`rotate(${rwA},${(RW.x1+RW.x2)/2-65},${(RW.y1+RW.y2)/2-15})`}>RUNWAY 04/22</text>
 
-            {/* Fiber backbone */}
-            <line x1={C2P.x} y1={C2P.y} x2={C2S.x} y2={C2S.y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>
-            <text x={(C2P.x+C2S.x)/2} y={(C2P.y+C2S.y)/2-8} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.35)" fontFamily="Oxanium,sans-serif" letterSpacing="1">FIBER BACKBONE</text>
+                {/* Fiber backbone */}
+                <line x1={C2P.x} y1={C2P.y} x2={C2S.x} y2={C2S.y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>
+                <text x={(C2P.x+C2S.x)/2} y={(C2P.y+C2S.y)/2-8} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.35)" fontFamily="Oxanium,sans-serif" letterSpacing="1">FIBER BACKBONE</text>
 
-            {ly.fc && FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
+                {ly.fc && FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
 
-            {/* Coverage layers */}
-            {ly.rf && N.filter(n=>n.t==="s").map(n=><circle key={`c${n.id}`} cx={n.x} cy={n.y} r={140} fill="url(#sg)" stroke="rgba(0,180,255,0.06)" strokeWidth="0.5"/>)}
-            {ly.ea && N.filter(n=>n.t==="e").map(n=><circle key={`e${n.id}`} cx={n.x} cy={n.y} r={90} fill="url(#eg)" stroke="rgba(255,60,60,0.12)" strokeWidth="1" strokeDasharray="4,3"/>)}
-            {ly.rd && R.map(r=><circle key={`rv${r.id}`} cx={r.x} cy={r.y} r={120} fill="url(#rg)" stroke="rgba(0,204,102,0.12)" strokeWidth="1.5" strokeDasharray="6,4"/>)}
-            {ly.ac && AC.map(a=><circle key={`av${a.id}`} cx={a.x} cy={a.y} r={45} fill="url(#ag)" stroke="rgba(160,112,208,0.15)" strokeWidth="1" strokeDasharray="3,3"/>)}
+                {/* Coverage layers */}
+                {ly.rf && N.filter(n=>n.t==="s").map(n=><circle key={`c${n.id}`} cx={n.x} cy={n.y} r={140} fill="url(#sg)" stroke="rgba(0,180,255,0.06)" strokeWidth="0.5"/>)}
+                {ly.ea && N.filter(n=>n.t==="e").map(n=><circle key={`e${n.id}`} cx={n.x} cy={n.y} r={90} fill="url(#eg)" stroke="rgba(255,60,60,0.12)" strokeWidth="1" strokeDasharray="4,3"/>)}
+                {ly.rd && R.map(r=><circle key={`rv${r.id}`} cx={r.x} cy={r.y} r={120} fill="url(#rg)" stroke="rgba(0,204,102,0.12)" strokeWidth="1.5" strokeDasharray="6,4"/>)}
+                {ly.ac && AC.map(a=><circle key={`av${a.id}`} cx={a.x} cy={a.y} r={45} fill="url(#ag)" stroke="rgba(160,112,208,0.15)" strokeWidth="1" strokeDasharray="3,3"/>)}
 
-            {/* Mesh links */}
-            {ly.ms && mLinks.map(([a,b],i)=><line key={i} x1={N[a].x} y1={N[a].y} x2={N[b].x} y2={N[b].y} stroke="rgba(0,255,120,0.06)" strokeWidth="0.6"/>)}
-            {ly.ms && N.filter(n=>n.t==="e").map(n=>{const tgt=n.x<900?C2P:C2S;return <line key={`c${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
-            {ly.ms && R.map(r=>{const tgt=r.x<900?C2P:C2S;return <line key={`cr${r.id}`} x1={r.x} y1={r.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
+                {/* Mesh links */}
+                {ly.ms && mLinks.map(([a,b],i)=><line key={i} x1={N[a].x} y1={N[a].y} x2={N[b].x} y2={N[b].y} stroke="rgba(0,255,120,0.06)" strokeWidth="0.6"/>)}
+                {ly.ms && N.filter(n=>n.t==="e").map(n=>{const tgt=n.x<900?C2P:C2S;return <line key={`c${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
+                {ly.ms && R.map(r=>{const tgt=r.x<900?C2P:C2S;return <line key={`cr${r.id}`} x1={r.x} y1={r.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>})}
 
-            {/* C2 Servers */}
-            {[C2P,C2S].map((c2,i)=>(
-              <g key={c2.l} style={{cursor:"pointer"}} onMouseEnter={()=>hv(`c2${i}`,"c2")} onMouseLeave={lv} onClick={()=>cl(`c2${i}`,"c2")} filter={isA(`c2${i}`)?"url(#gl)":undefined}>
-                <rect x={c2.x-35} y={c2.y-16} width={70} height={32} fill={isA(`c2${i}`)?"rgba(255,200,0,0.3)":"rgba(255,200,0,0.1)"} stroke="rgba(255,200,0,0.6)" strokeWidth="1.5" rx="4"/>
-                <text x={c2.x} y={c2.y} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.9)" fontFamily="Oxanium,sans-serif" fontWeight="700" letterSpacing="0.5">{c2.l}</text>
-                <text x={c2.x} y={c2.y+10} textAnchor="middle" fontSize="5.5" fill="rgba(255,200,0,0.45)">FUSION</text>
-              </g>
-            ))}
+                {/* C2 Servers */}
+                {[C2P,C2S].map((c2,i)=>(
+                  <g key={c2.l} style={{cursor:"pointer"}} onMouseEnter={()=>hv(`c2${i}`,"c2")} onMouseLeave={lv} onClick={()=>cl(`c2${i}`,"c2")} filter={isA(`c2${i}`)?"url(#gl)":undefined}>
+                    <rect x={c2.x-35} y={c2.y-16} width={70} height={32} fill={isA(`c2${i}`)?"rgba(255,200,0,0.3)":"rgba(255,200,0,0.1)"} stroke="rgba(255,200,0,0.6)" strokeWidth="1.5" rx="4"/>
+                    <text x={c2.x} y={c2.y} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.9)" fontFamily="Oxanium,sans-serif" fontWeight="700" letterSpacing="0.5">{c2.l}</text>
+                    <text x={c2.x} y={c2.y+10} textAnchor="middle" fontSize="5.5" fill="rgba(255,200,0,0.45)">FUSION</text>
+                  </g>
+                ))}
 
-            {/* EO/IR Turrets */}
-            {ly.eo && EO.map(t=>(
-              <g key={t.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(t.id,"eo")} onMouseLeave={lv} onClick={()=>cl(t.id,"eo")} filter={isA(t.id)?"url(#gl)":undefined}>
-                <circle cx={t.x} cy={t.y} r={8} fill="none" stroke={isA(t.id)?"#e0a030":"rgba(224,160,48,0.4)"} strokeWidth={isA(t.id)?2:1.2}/>
-                <circle cx={t.x} cy={t.y} r={3.5} fill={isA(t.id)?"#e0a030":"rgba(224,160,48,0.5)"}/>
-                <line x1={t.x} y1={t.y-8} x2={t.x} y2={t.y-14} stroke={isA(t.id)?"#e0a030":"rgba(224,160,48,0.3)"} strokeWidth="1.5"/>
-                <text x={t.x} y={t.y+20} textAnchor="middle" fontSize="5.5" fill={isA(t.id)?"#fff":"rgba(224,160,48,0.45)"}>{t.id}</text>
-              </g>
-            ))}
+                {/* EO/IR Turrets */}
+                {ly.eo && EO.map(t=>(
+                  <g key={t.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(t.id,"eo")} onMouseLeave={lv} onClick={()=>cl(t.id,"eo")} filter={isA(t.id)?"url(#gl)":undefined}>
+                    <circle cx={t.x} cy={t.y} r={8} fill="none" stroke={isA(t.id)?"#e0a030":"rgba(224,160,48,0.4)"} strokeWidth={isA(t.id)?2:1.2}/>
+                    <circle cx={t.x} cy={t.y} r={3.5} fill={isA(t.id)?"#e0a030":"rgba(224,160,48,0.5)"}/>
+                    <line x1={t.x} y1={t.y-8} x2={t.x} y2={t.y-14} stroke={isA(t.id)?"#e0a030":"rgba(224,160,48,0.3)"} strokeWidth="1.5"/>
+                    <text x={t.x} y={t.y+20} textAnchor="middle" fontSize="5.5" fill={isA(t.id)?"#fff":"rgba(224,160,48,0.45)"}>{t.id}</text>
+                  </g>
+                ))}
 
-            {/* Acoustic Arrays */}
-            {ly.ac && AC.map(a=>(
-              <g key={a.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(a.id,"ac")} onMouseLeave={lv} onClick={()=>cl(a.id,"ac")} filter={isA(a.id)?"url(#gl)":undefined}>
-                {/* Concentric rings = sound waves */}
-                <circle cx={a.x} cy={a.y} r={7} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.6)":"rgba(160,112,208,0.2)"} strokeWidth="0.7"/>
-                <circle cx={a.x} cy={a.y} r={11} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.4)":"rgba(160,112,208,0.12)"} strokeWidth="0.5"/>
-                <circle cx={a.x} cy={a.y} r={4} fill={isA(a.id)?"#a070d0":"rgba(160,112,208,0.45)"}/>
-                <text x={a.x} y={a.y+20} textAnchor="middle" fontSize="5" fill={isA(a.id)?"#fff":"rgba(160,112,208,0.35)"}>{a.id}</text>
-              </g>
-            ))}
+                {/* Acoustic Arrays */}
+                {ly.ac && AC.map(a=>(
+                  <g key={a.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(a.id,"ac")} onMouseLeave={lv} onClick={()=>cl(a.id,"ac")} filter={isA(a.id)?"url(#gl)":undefined}>
+                    <circle cx={a.x} cy={a.y} r={7} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.6)":"rgba(160,112,208,0.2)"} strokeWidth="0.7"/>
+                    <circle cx={a.x} cy={a.y} r={11} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.4)":"rgba(160,112,208,0.12)"} strokeWidth="0.5"/>
+                    <circle cx={a.x} cy={a.y} r={4} fill={isA(a.id)?"#a070d0":"rgba(160,112,208,0.45)"}/>
+                    <text x={a.x} y={a.y+20} textAnchor="middle" fontSize="5" fill={isA(a.id)?"#fff":"rgba(160,112,208,0.35)"}>{a.id}</text>
+                  </g>
+                ))}
 
-            {/* Radar towers */}
-            {R.map(r=>(
-              <g key={r.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(r.id,"r")} onMouseLeave={lv} onClick={()=>cl(r.id,"r")} filter={isA(r.id)?"url(#gl)":undefined}>
-                <rect x={r.x-9} y={r.y-9} width={18} height={18} fill={isA(r.id)?"#00cc66":"rgba(0,204,102,0.3)"} stroke="#00cc66" strokeWidth={isA(r.id)?2.5:1.5} rx="2" transform={`rotate(45,${r.x},${r.y})`}/>
-                <text x={r.x} y={r.y+4} textAnchor="middle" fontSize="7" fill="#fff" fontFamily="Oxanium,sans-serif" fontWeight="700">R</text>
-                <text x={r.x} y={r.y+24} textAnchor="middle" fontSize="6" fill={isA(r.id)?"#fff":"rgba(0,204,102,0.5)"}>{r.id}</text>
-              </g>
-            ))}
+                {/* Radar towers */}
+                {R.map(r=>(
+                  <g key={r.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(r.id,"r")} onMouseLeave={lv} onClick={()=>cl(r.id,"r")} filter={isA(r.id)?"url(#gl)":undefined}>
+                    <rect x={r.x-9} y={r.y-9} width={18} height={18} fill={isA(r.id)?"#00cc66":"rgba(0,204,102,0.3)"} stroke="#00cc66" strokeWidth={isA(r.id)?2.5:1.5} rx="2" transform={`rotate(45,${r.x},${r.y})`}/>
+                    <text x={r.x} y={r.y+4} textAnchor="middle" fontSize="7" fill="#fff" fontFamily="Oxanium,sans-serif" fontWeight="700">R</text>
+                    <text x={r.x} y={r.y+24} textAnchor="middle" fontSize="6" fill={isA(r.id)?"#fff":"rgba(0,204,102,0.5)"}>{r.id}</text>
+                  </g>
+                ))}
 
-            {/* RF Sensor & EA nodes */}
-            {N.map(n=>{const s=n.t==="s";const co=s?"#00b4ff":"#ff3c3c";const sz=s?6:8;const a=isA(n.id);return(
-              <g key={n.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(n.id,n.t)} onMouseLeave={lv} onClick={()=>cl(n.id,n.t)} filter={a?"url(#gl)":undefined}>
-                <circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                <circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                <circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
-                {s?<circle cx={n.x} cy={n.y} r={sz} fill={a?co:`${co}55`} stroke={co} strokeWidth={a?2.5:1.3}/>
-                  :<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={a?co:`${co}55`} stroke={co} strokeWidth={a?2.5:1.3}/>}
-                <text x={n.x} y={n.y+(s?19:23)} textAnchor="middle" fontSize="5.5" fill={a?"#fff":`${co}55`}>{n.id}</text>
-              </g>
-            )})}
+                {/* RF Sensor & EA nodes */}
+                {N.map(n=>{const s=n.t==="s";const co=s?"#00b4ff":"#ff3c3c";const sz=s?6:8;const a=isA(n.id);return(
+                  <g key={n.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(n.id,n.t)} onMouseLeave={lv} onClick={()=>cl(n.id,n.t)} filter={a?"url(#gl)":undefined}>
+                    <circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
+                    <circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
+                    <circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>
+                    {s?<circle cx={n.x} cy={n.y} r={sz} fill={a?co:`${co}55`} stroke={co} strokeWidth={a?2.5:1.3}/>
+                      :<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={a?co:`${co}55`} stroke={co} strokeWidth={a?2.5:1.3}/>}
+                    <text x={n.x} y={n.y+(s?19:23)} textAnchor="middle" fontSize="5.5" fill={a?"#fff":`${co}55`}>{n.id}</text>
+                  </g>
+                )})}
 
-            {/* Scale & North */}
-            <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
-            <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
-          </svg>
-        </div>
+                {/* Scale & North */}
+                <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
+                <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
+              </svg>
+            </div>
 
-        {/* Side panel */}
-        <div style={{flex:"0 0 310px",padding:"12px 16px 12px 4px",display:"flex",flexDirection:"column",gap:10,overflowY:"auto",maxHeight:"calc(100vh - 90px)"}}>
-          <Blk t="LAYER CONTROLS">
-            {[
-              {k:"rf",l:"RF Sensor Coverage (2-3 km)",c:"#00b4ff"},
-              {k:"ea",l:"EA Effective Range (1.2 km)",c:"#ff3c3c"},
-              {k:"rd",l:"EchoGuard Radar (1 km)",c:"#00cc66"},
-              {k:"ac",l:"Acoustic Arrays (300-500m)",c:"#a070d0"},
-              {k:"eo",l:"EO/IR Tracking Turrets",c:"#e0a030"},
-              {k:"ms",l:"Mesh + C2 Links",c:"#00ff88"},
-              {k:"fc",l:"Facility Overlays",c:"#ffb428"},
-            ].map(c=>(
-              <label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}>
-                <div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}
-                </div>
-                <span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span>
-              </label>
-            ))}
-          </Blk>
+            {/* Side panel */}
+            <div style={{flex:"0 0 310px",padding:"12px 16px 12px 4px",display:"flex",flexDirection:"column",gap:10,overflowY:"auto",maxHeight:"calc(100vh - 90px)"}}>
+              <Blk t="LAYER CONTROLS">
+                {[
+                  {k:"rf",l:"RF Sensor Coverage (2-3 km)",c:"#00b4ff"},
+                  {k:"ea",l:"EA Effective Range (1.2 km)",c:"#ff3c3c"},
+                  {k:"rd",l:"EchoGuard Radar (1 km)",c:"#00cc66"},
+                  {k:"ac",l:"Acoustic Arrays (300-500m)",c:"#a070d0"},
+                  {k:"eo",l:"EO/IR Tracking Turrets",c:"#e0a030"},
+                  {k:"ms",l:"Mesh + C2 Links",c:"#00ff88"},
+                  {k:"fc",l:"Facility Overlays",c:"#ffb428"},
+                ].map(c=>(
+                  <label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}>
+                    <div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}
+                    </div>
+                    <span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span>
+                  </label>
+                ))}
+              </Blk>
 
-          {/* Tooltip detail card */}
-          <div style={{background:tip?`linear-gradient(135deg,${tip.color}08,${tip.color}03)`:"rgba(255,255,255,0.02)",border:`1px solid ${tip?tip.color+"40":"rgba(0,255,120,0.1)"}`,borderRadius:8,padding:13,transition:"all 0.3s",minHeight:tip?"auto":90}}>
-            {tip?(<div>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                <span style={{fontSize:20,color:tip.color}}>{tip.icon}</span>
-                <div>
-                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div>
-                  <div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div>
-                </div>
+              {/* Tooltip detail card */}
+              <div style={{background:tip?`linear-gradient(135deg,${tip.color}08,${tip.color}03)`:"rgba(255,255,255,0.02)",border:`1px solid ${tip?tip.color+"40":"rgba(0,255,120,0.1)"}`,borderRadius:8,padding:13,transition:"all 0.3s",minHeight:tip?"auto":90}}>
+                {tip?(<div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <span style={{fontSize:20,color:tip.color}}>{tip.icon}</span>
+                    <div>
+                      <div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div>
+                      <div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div>
+                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>
+                  {tip.how.map((s,i)=>(
+                    <div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}>
+                      <span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span>
+                      <span style={{color:"#9aa8b6"}}>{s}</span>
+                    </div>
+                  ))}
+                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>
+                  {tip.specs.map(([k,v],i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}>
+                      <span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span>
+                    </div>
+                  ))}
+                  <div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div>
+                </div>):(<div style={{textAlign:"center",padding:"20px 0"}}>
+                  <div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div>
+                  <div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div>
+                  <div style={{fontSize:9,color:"#303a44",marginTop:2}}>view technology details & kill chain role</div>
+                </div>)}
               </div>
-              <div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div>
-              <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>
-              {tip.how.map((s,i)=>(
-                <div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}>
-                  <span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span>
-                  <span style={{color:"#9aa8b6"}}>{s}</span>
+
+              <Blk t="SYSTEM INVENTORY">
+                {[["◉","#00b4ff","RF Sensor Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes w/ DF","10 (30 DF)"],["◆","#00cc66","EchoGuard Radars","30 (10 towers)"],["◎","#a070d0","Acoustic Arrays","24 (MEMS)"],["◐","#e0a030","EO/IR Turrets","12 (thermal)"],["■","#ffcc00","C2 Servers","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div>
+                    <span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span>
+                  </div>
+                ))}
+                <div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span>
+                  <span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span>
                 </div>
-              ))}
-              <div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>
-              {tip.specs.map(([k,v],i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}>
-                  <span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span>
-                </div>
-              ))}
-              <div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div>
-            </div>):(<div style={{textAlign:"center",padding:"20px 0"}}>
-              <div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div>
-              <div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div>
-              <div style={{fontSize:9,color:"#303a44",marginTop:2}}>view technology details & kill chain role</div>
-            </div>)}
+              </Blk>
+
+              <Blk t="4 SENSOR PHENOMENOLOGIES">
+                {[["RF","#00b4ff","Passive DF + TDOA. Catches any sUAS with active control link."],["ACOUSTIC","#a070d0","MEMS beamforming detects propeller signatures. Works RF-silent."],["EO/IR","#e0a030","Thermal + HD PTZ with AI tracking. Cued by acoustic/RF/radar."],["RADAR","#00cc66","K-band ESA. All-weather. Detects everything including GPS-denied."]].map(([n,c,d],i)=>(
+                  <div key={i} style={{marginBottom:7}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:1}}><div style={{width:6,height:6,borderRadius:2,background:c}}/><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:c,fontWeight:700,letterSpacing:1}}>{n}</span></div>
+                    <div style={{fontSize:8.5,color:"#607080",lineHeight:1.4,paddingLeft:12}}>{d}</div>
+                  </div>
+                ))}
+              </Blk>
+            </div>
           </div>
 
-          <Blk t="SYSTEM INVENTORY">
-            {[["◉","#00b4ff","RF Sensor Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes w/ DF","10 (30 DF)"],["◆","#00cc66","EchoGuard Radars","30 (10 towers)"],["◎","#a070d0","Acoustic Arrays","24 (MEMS)"],["◐","#e0a030","EO/IR Turrets","12 (thermal)"],["■","#ffcc00","C2 Servers","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div>
-                <span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span>
-              </div>
-            ))}
-            <div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}>
-              <span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span>
-              <span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span>
-            </div>
-          </Blk>
-
-          <Blk t="4 SENSOR PHENOMENOLOGIES">
-            {[["RF","#00b4ff","Passive DF + TDOA. Catches any sUAS with active control link."],["ACOUSTIC","#a070d0","MEMS beamforming detects propeller signatures. Works RF-silent."],["EO/IR","#e0a030","Thermal + HD PTZ with AI tracking. Cued by acoustic/RF/radar."],["RADAR","#00cc66","K-band ESA. All-weather. Detects everything including GPS-denied."]].map(([n,c,d],i)=>(
-              <div key={i} style={{marginBottom:7}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:1}}><div style={{width:6,height:6,borderRadius:2,background:c}}/><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:c,fontWeight:700,letterSpacing:1}}>{n}</span></div>
-                <div style={{fontSize:8.5,color:"#607080",lineHeight:1.4,paddingLeft:12}}>{d}</div>
-              </div>
-            ))}
-          </Blk>
-        </div>
-      </div>
-
-      <footer style={{padding:"10px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:8,color:"#303a44",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-        <span>DoDAF SV-1 • Full Shaw AFB C-UAS Architecture • Main Cantonment + ARCENT East</span>
-        <span>40 RF/EA locations · 120 DF apertures · 30 radars · 24 acoustic · 12 EO/IR · 2 C2 servers</span>
-      </footer>
+          <footer style={{padding:"10px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:8,color:"#303a44",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+            <span>DoDAF SV-1 • Full Shaw AFB C-UAS Architecture • Main Cantonment + ARCENT East</span>
+            <span>40 RF/EA locations · 120 DF apertures · 30 radars · 24 acoustic · 12 EO/IR · 2 C2 servers</span>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
