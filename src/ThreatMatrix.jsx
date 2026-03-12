@@ -56,6 +56,20 @@ function DetailContent({sel,mods,tod,onShowOnMap,onClose,onDelete,mobile}){
       {sel.nDefeat<20&&<p style={{color:"#cc8800",marginBottom:4}}>⚠ NINJA defeat near zero: {sel.proto} not in protocol library</p>}
       {sel.sJam<45&&<p style={{color:"#2266cc",marginBottom:4}}>⚠ SUADS C2 jam weakened by {sel.proto} robust FHSS{sel.cell?" + cellular":""}</p>}
     </div>
+
+    {/* DRONESMOKE Interceptors */}
+    <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,color:"#00cc88",letterSpacing:2,margin:"16px 0 6px"}}>DRONESMOKE INTERCEPTORS (SV-1 CUED)</div>
+    <div style={{display:"flex",gap:6,margin:"6px 0"}}><SysBlock label="REDDI" color="#00cc88" risk={sel.iREff} tier={sel.iRTier} det={sel.cd} def={sel.iRDef} mobile={mobile}/><SysBlock label="SICA" color="#00aa77" risk={sel.iSEff} tier={sel.iSTier} det={sel.cd} def={sel.iSDef} mobile={mobile}/><SysBlock label="WASP" color="#009966" risk={sel.iWEff} tier={sel.iWTier} det={sel.cd} def={sel.iWDef} mobile={mobile}/></div>
+    <div style={{fontSize:mobile?8:7,color:"#506070",marginTop:4,lineHeight:1.4}}>D = SV-1 detection (cueing) · F = interceptor defeat probability</div>
+    <ScoreRow label="REDDI (Gnat EW)" v={sel.iRDef} color="#00cc88" mobile={mobile}/>
+    <ScoreRow label="SICA (Kinetic)" v={sel.iSDef} color="#00aa77" mobile={mobile}/>
+    <ScoreRow label="WASP (Kinetic)" v={sel.iWDef} color="#009966" mobile={mobile}/>
+    <div style={{marginTop:6,fontSize:mobile?10:8,color:"#405060",lineHeight:1.5}}>
+      {sel.iRDef<40&&sel.cell&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI Gnat EW ineffective: {sel.proto} + cellular survives analog jamming</p>}
+      {sel.iRDef<40&&!sel.cell&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI Gnat EW limited against {sel.proto} robust link</p>}
+      {sel.iSDef<50&&sel.w<500&&<p style={{color:"#00aa77",marginBottom:4}}>⚠ SICA kinetic intercept difficult: {(sel.w/1000).toFixed(1)}kg target too small</p>}
+      {sel.iWDef<50&&sel.w<500&&<p style={{color:"#009966",marginBottom:4}}>⚠ WASP kinetic intercept difficult: {(sel.w/1000).toFixed(1)}kg target, 5G limited</p>}
+    </div>
   </div>;
 }
 
@@ -69,6 +83,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
   const [tod,setTod]=useState("day");
   const [showMods,setShowMods]=useState(false);
   const [showCompare,setShowCompare]=useState(true);
+  const [showInterceptor,setShowInterceptor]=useState(false);
   const [scenarioName,setScenarioName]=useState("");
   const [copied,setCopied]=useState(false);
   const [customDrones,setCustomDrones]=useState(()=>loadCustomDrones());
@@ -104,6 +119,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:8}}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(0,255,120,0.15)",borderRadius:4,padding:mobile?"8px 12px":"5px 10px",color:"#e4ecf4",fontSize:mobile?14:11,fontFamily:"'IBM Plex Mono',monospace",flex:mobile?"1 1 100%":"0 0 140px",outline:"none",minHeight:mobile?44:undefined}}/>
           <button onClick={()=>setShowCompare(!showCompare)} style={{padding:mobile?"8px 10px":"3px 10px",borderRadius:3,border:`1px solid ${showCompare?"rgba(100,100,255,0.5)":"rgba(255,255,255,0.1)"}`,background:showCompare?"rgba(100,100,255,0.12)":"transparent",color:showCompare?"#8888ff":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:700,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>{showCompare?"3-WAY ✓":"3-WAY"}</button>
+          <button onClick={()=>setShowInterceptor(!showInterceptor)} style={{padding:mobile?"8px 10px":"3px 10px",borderRadius:3,border:`1px solid ${showInterceptor?"rgba(0,200,150,0.5)":"rgba(255,255,255,0.1)"}`,background:showInterceptor?"rgba(0,200,150,0.12)":"transparent",color:showInterceptor?"#00cc88":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:700,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>{showInterceptor?"INTCPT ✓":"INTCPT"}</button>
           <button onClick={()=>setShowUpload(!showUpload)} style={{padding:mobile?"8px 10px":"3px 8px",borderRadius:3,border:"1px solid rgba(100,200,255,0.4)",background:"rgba(100,200,255,0.08)",color:"#66bbff",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:700,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>+PDF</button>
           <button onClick={()=>setShowMods(!showMods)} style={{padding:mobile?"8px 10px":"3px 8px",borderRadius:3,border:"1px solid "+(activeMods.length?"rgba(255,60,60,0.5)":"rgba(255,255,255,0.1)"),background:activeMods.length?"rgba(255,60,60,0.12)":"transparent",color:activeMods.length?"#ff6666":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>{activeMods.length?`⚠(${activeMods.length})`:"MODS"}</button>
           <button onClick={exportPDF} style={{padding:mobile?"8px 8px":"3px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"#8888cc",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600,minHeight:mobile?44:undefined}}>PDF</button>
@@ -134,6 +150,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
                 <SH k="pi">INJ</SH><SH k="jm">JAM</SH><SH k="gs">GPS</SH>
                 <SH k="or" bg="#001a08">SV-1</SH>
                 {showCompare&&<><SH k="sRisk" bg="#0a1a33">SUADS</SH><SH k="nRisk" bg="#1a1100">NINJA</SH></>}
+                {showInterceptor&&<><SH k="iREff" bg="#0a1a1a">REDDI</SH><SH k="iSEff" bg="#0a1a1a">SICA</SH><SH k="iWEff" bg="#0a1a1a">WASP</SH></>}
               </tr></thead>
               <tbody>{filtered.map((d,i)=>{const isSel=sel&&sel.n===d.n;return(<tr key={d.n+i} onClick={()=>setSel(isSel?null:d)} style={{cursor:"pointer",background:isSel?"rgba(0,255,120,0.08)":i%2===0?"rgba(255,255,255,0.01)":"transparent",borderBottom:"1px solid rgba(255,255,255,0.03)"}} onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background="rgba(0,255,120,0.04)";}} onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background=i%2===0?"rgba(255,255,255,0.01)":"transparent";}}>
                 <td style={{padding:"5px 2px",fontWeight:600,color:"#e4ecf4",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.custom&&<span style={{fontSize:7,background:"rgba(100,100,255,0.2)",color:"#aaf",padding:"0 3px",borderRadius:2,marginRight:3}}>C</span>}{d.n}</td>
@@ -150,6 +167,11 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
                 {showCompare&&<>
                   <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(34,102,204,0.15)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.sTier],fontFamily:"'Oxanium',sans-serif"}}>{d.sRisk}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.sTier],background:TB[d.sTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.sTier}</span></div></td>
                   <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(204,136,0,0.15)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.nTier],fontFamily:"'Oxanium',sans-serif"}}>{d.nRisk}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.nTier],background:TB[d.nTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.nTier}</span></div></td>
+                </>}
+                {showInterceptor&&<>
+                  <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.15)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iRTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iREff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iRTier],background:TB[d.iRTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iRTier}</span></div></td>
+                  <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.1)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iSTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iSEff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iSTier],background:TB[d.iSTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iSTier}</span></div></td>
+                  <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.1)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iWTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iWEff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iWTier],background:TB[d.iWTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iWTier}</span></div></td>
                 </>}
               </tr>);})}</tbody>
             </table>

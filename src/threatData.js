@@ -102,10 +102,14 @@ const DRONES=[
   {n:"StriekAir CarryAir",m:"StriekAir",c:"Cargo",p:"VTOL",w:18000,s:25,ft:60,pr:null,proto:"Custom ISM",rtk:true,wp:true,cell:true,enc:true,auto:true,fs:"RTH",props:4,pd:18},
   {n:"Wingcopter 198",m:"Wingcopter",c:"Cargo",p:"VTOL",w:24000,s:40,ft:120,pr:80000,proto:"Custom ISM",rtk:true,wp:true,cell:true,enc:true,auto:true,fs:"RTH",props:4,pd:20},
   {n:"Matternet M2",m:"Matternet",c:"Cargo",p:"Multirotor",w:9750,s:22,ft:20,pr:null,proto:"Custom ISM",rtk:true,wp:true,cell:true,enc:true,auto:true,fs:"RTH",props:4,pd:20},
+  // ── DRONESMOKE Battle Lab Interceptors (also scored as threats) ──
+  {n:"REDDI",m:"MITRE",c:"Enterprise",p:"VTOL",w:1814,s:126,ft:5,pr:800,proto:"Doodle Labs Mesh",rtk:false,wp:false,cell:false,enc:true,auto:false,fs:"Land",props:1,pd:8},
+  {n:"SICA",m:"MIT Lincoln Lab",c:"Enterprise",p:"VTOL",w:2994,s:76,ft:10,pr:1500,proto:"Custom ISM",rtk:false,wp:false,cell:true,enc:true,auto:false,fs:"Land",props:1,pd:10},
+  {n:"WASP",m:"Titan Dynamics",c:"Enterprise",p:"VTOL",w:1814,s:89,ft:8,pr:8000,proto:"Custom ISM",rtk:false,wp:false,cell:true,enc:true,auto:false,fs:"Land",props:1,pd:8},
 ];
 
 const INJECTABLE=new Set(["OcuSync","OcuSync 2","OcuSync 3","OcuSync 3+","OcuSync 4","OcuSync 4+","OcuSync O4","OcuSync O4+","OcuSync 2 Enterprise","OcuSync 3 Enterprise","OcuSync 4 Enterprise","Lightbridge","Lightbridge 2","Enhanced WiFi","WiFi","WiFi 6"]);
-const JAM_DIFF={"WiFi":10,"Enhanced WiFi":15,"WiFi 6":25,"Lightbridge":20,"Lightbridge 2":25,"OcuSync":35,"OcuSync 2":40,"OcuSync 3":45,"OcuSync 3+":48,"OcuSync 4":52,"OcuSync 4+":55,"OcuSync O4":50,"OcuSync O4+":53,"OcuSync 2 Enterprise":50,"OcuSync 3 Enterprise":55,"OcuSync 4 Enterprise":60,"SkyLink 2":55,"SkyLink 3":60,"Skydio Link":60,"Microhard":65,"Futaba S-FHSS":30,"Custom ISM":55};
+const JAM_DIFF={"WiFi":10,"Enhanced WiFi":15,"WiFi 6":25,"Lightbridge":20,"Lightbridge 2":25,"OcuSync":35,"OcuSync 2":40,"OcuSync 3":45,"OcuSync 3+":48,"OcuSync 4":52,"OcuSync 4+":55,"OcuSync O4":50,"OcuSync O4+":53,"OcuSync 2 Enterprise":50,"OcuSync 3 Enterprise":55,"OcuSync 4 Enterprise":60,"SkyLink 2":55,"SkyLink 3":60,"Skydio Link":60,"Microhard":65,"Futaba S-FHSS":30,"Custom ISM":55,"Doodle Labs Mesh":68};
 const cl=(v)=>Math.max(0,Math.min(100,Math.round(v)));
 
 export const HARDENED_MODS={rfSilent:{label:"RF-Silent Mode",desc:"No RF emissions for DF/TDOA",icon:"📡"},customFW:{label:"Custom Firmware",desc:"Protocol injection fails",icon:"🔧"},gpsDenied:{label:"GPS-Denied Nav",desc:"GPS spoofing cannot redirect",icon:"🛰️"},noCell:{label:"Cellular Disabled",desc:"Jamming more effective",icon:"📶"},terrainMask:{label:"Terrain Masking",desc:"Reduces radar & EO/IR",icon:"🏔️"},swarm:{label:"Swarm Tactics",desc:"Overwhelms single-node EA",icon:"🐝"}};
@@ -198,6 +202,80 @@ function analyzeSUADS(d,mo){
   return{sRF:rf,sJam:jam,sGNSS:gnss,sDet:det,sDefeat:def,sRisk:eff,sTier:effTier(eff)};
 }
 
+// ── DRONESMOKE Interceptor Effectiveness Model ────────────────────────────────
+// All three interceptors rely on SV-1 cueing (cd = composite detection).
+// Effectiveness = SV-1_detection × interceptor_defeat_probability
+// Each interceptor has a unique defeat mechanism scored against each target.
+
+// REDDI (MITRE) — Close-proximity analog EW via Gnat jammer
+// 283 mph, VTOL launch, Doodle Labs Mesh C2, $800/unit
+// Defeat: Analog electronic attack at close range — protocol-dependent
+// More effective than standoff jamming because of proximity, but still
+// cannot defeat cellular backup or encrypted autonomous waypoint nav
+function reddiDefeat(d,mo){
+  if(mo.rfSilent)return 15;
+  let b=70;
+  const p=d.proto;
+  if(p.includes("WiFi")||p==="Enhanced WiFi")b=92;
+  else if(p.includes("Lightbridge"))b=85;
+  else if(p.includes("OcuSync")){
+    if(p.includes("Enterprise"))b=58;
+    else if(p.includes("4")||p.includes("O4"))b=62;
+    else if(p.includes("3"))b=67;
+    else b=74;
+  }
+  else if(p.includes("Futaba"))b=80;
+  else if(p.includes("SkyLink")){b=p.includes("3")?48:52;}
+  else if(p.includes("Skydio"))b=46;
+  else if(p.includes("Microhard"))b=38;
+  else if(p.includes("Custom"))b=42;
+  else if(p.includes("Doodle"))b=35;
+  if(d.cell&&!mo.noCell)b-=22;
+  if(d.enc)b-=3;
+  if(mo.swarm)b-=20;
+  return cl(b);
+}
+
+// SICA (MIT Lincoln Lab) — Kinetic intercept via SWAP-C warhead + optional EW
+// 170 mph, 10G maneuvering, cell modem (RPi5), $1500/unit
+// Defeat: Kinetic kill — protocol-independent, depends on target size/speed/agility
+// 10G turn capability gives excellent tracking against evasive targets
+function sicaDefeat(d,mo){
+  let b=70;
+  const w=d.w;
+  if(w<=200)b=38;else if(w<=300)b=45;else if(w<=500)b=52;else if(w<=1000)b=62;
+  else if(w<=2000)b=70;else if(w<=5000)b=78;else if(w<=10000)b=86;else b=92;
+  if(d.s>30)b-=10;else if(d.s>25)b-=6;else if(d.s>20)b-=3;
+  if(d.p==="VTOL")b-=10;
+  if(mo.swarm)b-=25;
+  if(mo.terrainMask)b-=15;
+  return cl(b);
+}
+
+// WASP (Titan Dynamics) — Kinetic intercept
+// 200 mph, 5G maneuvering, DTC Radio + 5G cell, $8000/unit
+// Defeat: Kinetic kill — protocol-independent, similar to SICA but 5G vs 10G
+// Faster than SICA (200 vs 170 mph) but less maneuverable (5G vs 10G)
+function waspDefeat(d,mo){
+  let b=65;
+  const w=d.w;
+  if(w<=200)b=32;else if(w<=300)b=40;else if(w<=500)b=48;else if(w<=1000)b=57;
+  else if(w<=2000)b=65;else if(w<=5000)b=74;else if(w<=10000)b=82;else b=88;
+  if(d.s>30)b-=8;else if(d.s>25)b-=5;else if(d.s>20)b-=2;
+  if(d.p==="VTOL")b-=8;
+  if(mo.swarm)b-=25;
+  if(mo.terrainMask)b-=15;
+  return cl(b);
+}
+
+function analyzeInterceptors(d,mo,cd){
+  const rD=reddiDefeat(d,mo),sD=sicaDefeat(d,mo),wD=waspDefeat(d,mo);
+  const rE=cl((cd/100)*(rD/100)*100);
+  const sE=cl((cd/100)*(sD/100)*100);
+  const wE=cl((cd/100)*(wD/100)*100);
+  return{iRDef:rD,iREff:rE,iRTier:effTier(rE),iSDef:sD,iSEff:sE,iSTier:effTier(sE),iWDef:wD,iWEff:wE,iWTier:effTier(wE)};
+}
+
 // ── Main Analysis ─────────────────────────────────────────────────────────────
 export function analyzeDrone(d,mods={},tod="day"){
   const rd=scoreRF(d,mods),ad=scoreAcoustic(d,mods,tod),rad=scoreRadar(d,mods),ed=scoreEOIR(d,mods,tod);
@@ -207,7 +285,8 @@ export function analyzeDrone(d,mods={},tod="day"){
   const or_=cl((cd/100)*(cdf/100)*100);
   const ninja=analyzeNinja(d,mods);
   const suads=analyzeSUADS(d,mods);
-  return{...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:effTier(or_),...ninja,...suads};
+  const intcpt=analyzeInterceptors(d,mods,cd);
+  return{...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:effTier(or_),...ninja,...suads,...intcpt};
 }
 
 export function analyzeDrones(mods={},tod="day",customDrones=[]){
