@@ -304,7 +304,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   html+=`</div></div></div>`;
 
   // Comparative table for all ELEVATED+ across any system
-  const elev=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>a.nRisk-b.nRisk);
+  const elev=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>b.or-a.or);
   if(elev.length){
     html+=`<h2 style="color:#c30;border-color:#c30">CRITICAL PLATFORMS: EFFECTIVENESS BELOW 60% (${elev.length})</h2>`;
     html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
@@ -328,7 +328,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   // Full table
   html+=`<h2 style="color:#333;border-color:#333">ALL ${data.length} PLATFORMS</h2>`;
   html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>Δ S</th><th>Δ N</th></tr>`;
-  [...data].sort((a,b)=>a.or-b.or).forEach(d=>{
+  [...data].sort((a,b)=>b.or-a.or).forEach(d=>{
     const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
     html+=`<tr><td>${d.n}</td><td>${d.proto}</td>`;
     html+=`<td class="sc" style="color:${rc(d.rt)}">${d.or}%</td>`;
