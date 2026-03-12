@@ -1,12 +1,11 @@
 /**
- * Shaw AFB cUAS SV-1 — Threat Database & Scoring Engine v6
+ * Shaw AFB cUAS SV-1 — Threat Database & Scoring Engine v7
  *
- * v6: RD-SUADS (Trust Automation) comparison model
- *     - RF detection via MEDUSA C2 network
- *     - EW defeat: broadband C2 jamming + GNSS denial
- *     - No radar, acoustic, or EO/IR
+ * v7: Effectiveness Rate framing (inverted from residual risk)
+ *     - Scores now represent successful detect & defeat per 100 encounters
+ *     - 3-tier system: CRITICAL (<60%), ELEVATED (61-80%), LOW (81-100%)
  *     - Three-way comparison: SV-1 vs NINJA vs RD-SUADS
- *     - Assessment tab with active-voice comparison paragraph
+ *     - Assessment paragraph uses effectiveness language
  */
 
 const DRONES=[
@@ -123,12 +122,12 @@ function scoreEOIR(d,mo,tod){const w=d.w;let b=w<=200?28:w<=300?38:w<=500?48:w<=
 function scoreProtoInject(d,mo){if(mo.customFW)return 2;if(mo.rfSilent)return 0;if(!INJECTABLE.has(d.proto))return 10;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")return 92;if(p.includes("Lightbridge"))return 85;if(p.includes("Enterprise"))return 60;if(p.includes("4")||p.includes("O4"))return 65;if(p.includes("3"))return 70;if(p.includes("2"))return 78;return 80;}
 function scoreJamming(d,mo){if(mo.rfSilent)return 15;let b=100-(JAM_DIFF[d.proto]||50);if(d.cell&&!mo.noCell)b-=15;if(d.enc)b-=5;if(mo.swarm)b-=25;return cl(b);}
 function scoreGPS(d,mo){if(mo.gpsDenied)return 5;let b=80;if(d.rtk)b-=35;if(!d.auto)b+=10;return cl(b);}
-function riskTier(r){if(r<=15)return"LOW";if(r<=35)return"MODERATE";if(r<=55)return"ELEVATED";if(r<=75)return"HIGH";return"CRITICAL";}
+function effTier(e){if(e>=81)return"LOW";if(e>=61)return"ELEVATED";return"CRITICAL";}
 
 // ── NINJA Scoring (RF-only detection, protocol manipulation only) ─────────────
 function ninjaRF(d,mo){if(mo.rfSilent)return 3;const p=d.proto;if(p.includes("OcuSync")||p.includes("Lightbridge"))return 82;if(p.includes("WiFi")||p==="Enhanced WiFi")return 85;if(p.includes("SkyLink"))return 55;if(p.includes("Skydio"))return 50;if(p.includes("Microhard"))return 45;if(p.includes("Custom"))return 35;if(p.includes("Futaba"))return 65;if(d.enc)return cl(70-5);return 70;}
 function ninjaDefeat(d,mo){if(mo.customFW)return 1;if(mo.rfSilent)return 0;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")return 88;if(p.includes("OcuSync")||p.includes("Lightbridge"))return 75;if(p.includes("SkyLink"))return 15;if(p.includes("Skydio"))return 10;if(p.includes("Microhard"))return 8;if(p.includes("Custom"))return 5;if(p.includes("Futaba"))return 12;return 20;}
-function analyzeNinja(d,mo){const rf=ninjaRF(d,mo);const def=ninjaDefeat(d,mo);const or_=cl((1-(rf/100)*(def/100))*100);return{nRF:rf,nDefeat:def,nRisk:or_,nTier:riskTier(or_)};}
+function analyzeNinja(d,mo){const rf=ninjaRF(d,mo);const def=ninjaDefeat(d,mo);const eff=cl((rf/100)*(def/100)*100);return{nRF:rf,nDefeat:def,nRisk:eff,nTier:effTier(eff)};}
 
 // ── RD-SUADS Scoring (RF detection via MEDUSA + C2/GNSS jamming) ──────────────
 // Trust Automation SUADS: $490M USAF IDIQ (Jan 2026)
@@ -195,8 +194,8 @@ function analyzeSUADS(d,mo){
   const gnss=suadsGNSS(d,mo);
   const det=rf; // RF-only detection
   const def=cl((1-(1-jam/100)*(1-gnss/100))*100); // two defeat mechanisms
-  const or_=cl((1-(det/100)*(def/100))*100);
-  return{sRF:rf,sJam:jam,sGNSS:gnss,sDet:det,sDefeat:def,sRisk:or_,sTier:riskTier(or_)};
+  const eff=cl((det/100)*(def/100)*100);
+  return{sRF:rf,sJam:jam,sGNSS:gnss,sDet:det,sDefeat:def,sRisk:eff,sTier:effTier(eff)};
 }
 
 // ── Main Analysis ─────────────────────────────────────────────────────────────
@@ -205,15 +204,15 @@ export function analyzeDrone(d,mods={},tod="day"){
   const pi=scoreProtoInject(d,mods),jm=scoreJamming(d,mods),gs=scoreGPS(d,mods);
   const cd=cl((1-(1-rd/100)*(1-ad/100)*(1-rad/100)*(1-ed/100))*100);
   const cdf=cl((1-(1-pi/100)*(1-jm/100)*(1-gs/100))*100);
-  const or_=cl((1-(cd/100)*(cdf/100))*100);
+  const or_=cl((cd/100)*(cdf/100)*100);
   const ninja=analyzeNinja(d,mods);
   const suads=analyzeSUADS(d,mods);
-  return{...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:riskTier(or_),...ninja,...suads};
+  return{...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:effTier(or_),...ninja,...suads};
 }
 
 export function analyzeDrones(mods={},tod="day",customDrones=[]){
   const all=[...DRONES,...customDrones.map(d=>({...d,custom:true}))];
-  return all.map(d=>analyzeDrone(d,mods,tod)).sort((a,b)=>b.or-a.or);
+  return all.map(d=>analyzeDrone(d,mods,tod)).sort((a,b)=>a.or-b.or);
 }
 
 export function getNodeEffectiveness(scored){return{rfSensor:scored.rd,eaNode:Math.round((scored.pi+scored.jm+scored.gs)/3),radar:scored.rad,acoustic:scored.ad,eoir:scored.ed};}
@@ -239,28 +238,27 @@ export function loadApiKey(){try{return localStorage.getItem(KEY_STORAGE)||"";}c
 export function saveApiKey(k){try{localStorage.setItem(KEY_STORAGE,k);}catch(e){}}
 
 // ── Briefing with Three-Way Comparison + Assessment ───────────────────────────
-function rc(t){return{CRITICAL:"#ff0000",HIGH:"#ff4444",ELEVATED:"#ff9900",MODERATE:"#cccc00",LOW:"#00cc66"}[t]||"#888";}
+function rc(t){return{CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"}[t]||"#888";}
 function sc(v){return v>=70?"#00cc66":v>=50?"#aaaa00":v>=30?"#ff9900":"#ff4444";}
 
 function generateAssessment(data){
-  const elevated=data.filter(d=>d.or>=35||d.sRisk>=35||d.nRisk>=35);
-  const avgSV1=Math.round(data.reduce((a,d)=>a+d.or,0)/data.length);
-  const avgNinja=Math.round(data.reduce((a,d)=>a+d.nRisk,0)/data.length);
-  const avgSuads=Math.round(data.reduce((a,d)=>a+d.sRisk,0)/data.length);
-  const sv1Elev=data.filter(d=>d.rt==="ELEVATED"||d.rt==="HIGH"||d.rt==="CRITICAL").length;
-  const ninjaElev=data.filter(d=>d.nTier==="ELEVATED"||d.nTier==="HIGH"||d.nTier==="CRITICAL").length;
-  const suadsElev=data.filter(d=>d.sTier==="ELEVATED"||d.sTier==="HIGH"||d.sTier==="CRITICAL").length;
-  const ninjaCrit=data.filter(d=>d.nTier==="CRITICAL"||d.nTier==="HIGH").length;
-  const suadsCrit=data.filter(d=>d.sTier==="CRITICAL"||d.sTier==="HIGH").length;
+  const total=data.length;
+  const avgSV1=Math.round(data.reduce((a,d)=>a+d.or,0)/total);
+  const avgNinja=Math.round(data.reduce((a,d)=>a+d.nRisk,0)/total);
+  const avgSuads=Math.round(data.reduce((a,d)=>a+d.sRisk,0)/total);
+  const sv1Low=data.filter(d=>d.rt==="LOW").length;
+  const sv1Crit=data.filter(d=>d.rt==="CRITICAL").length;
+  const ninjaCrit=data.filter(d=>d.nTier==="CRITICAL").length;
+  const suadsCrit=data.filter(d=>d.sTier==="CRITICAL").length;
 
-  return `The SV-1 multi-modal architecture holds the average residual risk across all 93 platforms to ${avgSV1}% and pushes ${sv1Elev} platforms above the ELEVATED threshold, because its four detection phenomenologies (RF, acoustic, radar, EO/IR) and three defeat mechanisms (protocol injection, jamming, GPS spoofing) overlap so that no single platform characteristic can evade the entire kill chain. The NINJA Gen2 system, which relies on RF detection alone and defeats only through protocol manipulation, allows the average risk to climb to ${avgNinja}% and leaves ${ninjaElev} platforms at ELEVATED or above, with ${ninjaCrit} reaching HIGH or CRITICAL, because any drone running a non-DJI protocol like Autel SkyLink, Skydio Link, Microhard, or a custom ISM link falls outside NINJA's protocol library and becomes nearly undefeatable. The RD-SUADS system improves on NINJA by adding broadband C2 jamming and GNSS denial, which drops the average risk to ${avgSuads}% and holds ${suadsElev} platforms at ELEVATED or above with ${suadsCrit} at HIGH or CRITICAL, but it still detects through RF alone and cannot redirect a drone the way GPS spoofing does, it cannot classify or track RF-silent platforms, and its broadband jamming risks disrupting friendly communications across the installation. The SV-1 closes the gaps both systems leave open: radar and acoustic arrays detect platforms that emit no RF energy, EO/IR turrets confirm and track targets that evade radar at close range, protocol injection takes surgical control of DJI platforms without collateral interference, and GPS spoofing redirects uncooperative drones to a capture corridor rather than simply denying their navigation fix and hoping the failsafe behavior works in the defender's favor.`;
+  return `The SV-1 multi-modal architecture achieves an average effectiveness rate of ${avgSV1}% across all ${total} platforms and holds ${sv1Low} platforms in the LOW tier (81% or higher effectiveness), because its four detection phenomenologies (RF, acoustic, radar, EO/IR) and three defeat mechanisms (protocol injection, jamming, GPS spoofing) overlap so that no single platform characteristic can evade the entire kill chain. The NINJA Gen2 system achieves only ${avgNinja}% average effectiveness and places ${ninjaCrit} platforms in the CRITICAL tier (below 60% effectiveness), because any drone running a non-DJI protocol like Autel SkyLink, Skydio Link, Microhard, or a custom ISM link falls outside NINJA's protocol library and becomes nearly undefeatable. NINJA is ${avgSV1-avgNinja}% less effective than SV-1 on average. The RD-SUADS system improves on NINJA by adding broadband C2 jamming and GNSS denial, raising average effectiveness to ${avgSuads}% and reducing CRITICAL-tier platforms to ${suadsCrit}, but it still detects through RF alone and cannot redirect a drone the way GPS spoofing does, it cannot classify or track RF-silent platforms, and its broadband jamming risks disrupting friendly communications across the installation. RD-SUADS is ${avgSV1-avgSuads}% less effective than SV-1 on average. The SV-1 closes the gaps both systems leave open: radar and acoustic arrays detect platforms that emit no RF energy, EO/IR turrets confirm and track targets that evade radar at close range, protocol injection takes surgical control of DJI platforms without collateral interference, and GPS spoofing redirects uncooperative drones to a capture corridor rather than simply denying their navigation fix and hoping the failsafe behavior works in the defender's favor.`;
 }
 
 export function generateBriefingHTML(data,mods,tod,scenarioName){
   const activeMods=Object.keys(mods).filter(k=>mods[k]);
-  const tiers={CRITICAL:[],HIGH:[],ELEVATED:[],MODERATE:[],LOW:[]};data.forEach(d=>tiers[d.rt].push(d));
-  const nT={CRITICAL:[],HIGH:[],ELEVATED:[],MODERATE:[],LOW:[]};data.forEach(d=>nT[d.nTier].push(d));
-  const sT={CRITICAL:[],HIGH:[],ELEVATED:[],MODERATE:[],LOW:[]};data.forEach(d=>sT[d.sTier].push(d));
+  const tiers={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>tiers[d.rt].push(d));
+  const nT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>nT[d.nTier].push(d));
+  const sT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>sT[d.sTier].push(d));
   const todLabel=TOD_MODES[tod]?.label||"Day";const now=new Date().toISOString().split("T")[0];
 
   let html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shaw AFB cUAS Three-Way Comparison</title>
@@ -286,7 +284,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
 .assess{font-size:9.5px;line-height:1.7;color:#222;text-align:justify;margin:12px 0}
 </style></head><body><div class="pg">`;
 
-  html+=`<h1>SHAW AFB C-UAS: SV-1 vs RD-SUADS vs NINJA COMPARISON</h1>`;
+  html+=`<h1>SHAW AFB C-UAS: SV-1 vs RD-SUADS vs NINJA EFFECTIVENESS COMPARISON</h1>`;
   html+=`<div class="meta"><span>Shaw AFB, Sumter SC · 20th FW · DoDAF SV-1 Comparative Assessment</span><span>${now} · UNCLASSIFIED // FOUO</span></div>`;
   if(scenarioName)html+=`<div style="background:#0a0e14;color:#00ff88;padding:6px 10px;border-radius:4px;font-family:Oxanium,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:10px">SCENARIO: ${scenarioName.toUpperCase()}</div>`;
   html+=`<div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap"><div><strong>ToD:</strong> ${todLabel}</div><div><strong>Platforms:</strong> ${data.length}</div>`;
@@ -296,28 +294,28 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   // System cards
   html+=`<div style="display:flex;gap:12px;margin:10px 0;flex-wrap:wrap">`;
   html+=`<div class="sb" style="border-color:#0a4"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#0a4;margin:0 0 4px">SV-1 MULTI-MODAL ($1.64M)</h3><div style="color:#666">4 detection (RF+Acoustic+Radar+EO/IR) · 3 defeat (Injection+Jamming+GPS Spoof) · 40 sensor nodes</div><div class="ts">`;
-  ["CRITICAL","HIGH","ELEVATED","MODERATE","LOW"].forEach(t=>{if(tiers[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${tiers[t].length}</div>`;});
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(tiers[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${tiers[t].length}</div>`;});
   html+=`</div></div>`;
   html+=`<div class="sb" style="border-color:#2266cc"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#2266cc;margin:0 0 4px">RD-SUADS (Trust Automation)</h3><div style="color:#666">1 detection (RF/MEDUSA) · 2 defeat (C2 Jam+GNSS Denial) · No radar/acoustic/EO-IR</div><div class="ts">`;
-  ["CRITICAL","HIGH","ELEVATED","MODERATE","LOW"].forEach(t=>{if(sT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${sT[t].length}</div>`;});
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(sT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${sT[t].length}</div>`;});
   html+=`</div></div>`;
   html+=`<div class="sb" style="border-color:#c60"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#c60;margin:0 0 4px">NINJA Gen2 (Black River)</h3><div style="color:#666">1 detection (RF) · 1 defeat (Protocol Manipulation) · No jamming/GPS/radar/acoustic</div><div class="ts">`;
-  ["CRITICAL","HIGH","ELEVATED","MODERATE","LOW"].forEach(t=>{if(nT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${nT[t].length}</div>`;});
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(nT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${nT[t].length}</div>`;});
   html+=`</div></div></div>`;
 
   // Comparative table for all ELEVATED+ across any system
-  const elev=data.filter(d=>d.or>=35||d.sRisk>=35||d.nRisk>=35).sort((a,b)=>b.nRisk-a.nRisk);
+  const elev=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>a.nRisk-b.nRisk);
   if(elev.length){
-    html+=`<h2 style="color:#c30;border-color:#c30">ELEVATED+ PLATFORMS: THREE-WAY COMPARISON (${elev.length})</h2>`;
-    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th>SV-1 vs SUADS</th><th>SV-1 vs NINJA</th></tr>`;
+    html+=`<h2 style="color:#c30;border-color:#c30">CRITICAL PLATFORMS: EFFECTIVENESS BELOW 60% (${elev.length})</h2>`;
+    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
     elev.forEach(d=>{
       const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
       html+=`<tr><td style="font-weight:700">${d.n}</td><td>${d.proto}</td>`;
       html+=`<td class="sc" style="color:${rc(d.rt)};font-size:10px">${d.or}%</td><td class="sc" style="color:${rc(d.rt)}">${d.rt}</td>`;
       html+=`<td class="sc" style="color:${rc(d.sTier)};font-size:10px">${d.sRisk}%</td><td class="sc" style="color:${rc(d.sTier)}">${d.sTier}</td>`;
       html+=`<td class="sc" style="color:${rc(d.nTier)};font-size:10px">${d.nRisk}%</td><td class="sc" style="color:${rc(d.nTier)}">${d.nTier}</td>`;
-      html+=`<td class="sc ${ds>0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
-      html+=`<td class="sc ${dn>0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
+      html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
+      html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
     });
     html+=`</table>`;
   }
@@ -330,14 +328,14 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   // Full table
   html+=`<h2 style="color:#333;border-color:#333">ALL ${data.length} PLATFORMS</h2>`;
   html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>Δ S</th><th>Δ N</th></tr>`;
-  [...data].sort((a,b)=>(b.nRisk-b.or)-(a.nRisk-a.or)).forEach(d=>{
+  [...data].sort((a,b)=>a.or-b.or).forEach(d=>{
     const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
     html+=`<tr><td>${d.n}</td><td>${d.proto}</td>`;
     html+=`<td class="sc" style="color:${rc(d.rt)}">${d.or}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.sTier)}">${d.sRisk}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.nTier)}">${d.nRisk}%</td>`;
-    html+=`<td class="sc ${ds>0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
-    html+=`<td class="sc ${dn>0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
+    html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
+    html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
   });
   html+=`</table>`;
 
