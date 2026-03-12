@@ -21,7 +21,7 @@ const mLinks=(()=>{const o=[];for(let i=0;i<N.length;i++)for(let j=i+1;j<N.lengt
 const pF=p=>p==="C"?"rgba(255,60,60,0.22)":p==="H"?"rgba(255,180,40,0.18)":"rgba(100,180,255,0.12)";
 const pS=p=>p==="C"?"rgba(255,60,60,0.6)":p==="H"?"rgba(255,180,40,0.5)":"rgba(100,180,255,0.35)";
 function effColor(v,a=0.35){if(v>=70)return`rgba(0,204,102,${a})`;if(v>=50)return`rgba(200,200,0,${a})`;if(v>=30)return`rgba(255,150,0,${a})`;return`rgba(255,60,60,${a})`;}
-const TCC={CRITICAL:"#ff0000",HIGH:"#ff4444",ELEVATED:"#ff9900",MODERATE:"#cccc00",LOW:"#00cc66"};
+const TCC={CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"};
 
 export default function App(){
   useFonts();const mobile=useMobile();
