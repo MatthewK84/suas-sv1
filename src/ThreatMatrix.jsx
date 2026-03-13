@@ -58,17 +58,18 @@ function DetailContent({sel,mods,tod,onShowOnMap,onClose,onDelete,mobile}){
     </div>
 
     {/* DRONESMOKE Interceptors */}
-    <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,color:"#00cc88",letterSpacing:2,margin:"16px 0 6px"}}>DRONESMOKE INTERCEPTORS (SV-1 CUED)</div>
-    <div style={{display:"flex",gap:6,margin:"6px 0"}}><SysBlock label="REDDI" color="#00cc88" risk={sel.iREff} tier={sel.iRTier} det={sel.cd} def={sel.iRDef} mobile={mobile}/><SysBlock label="SICA" color="#00aa77" risk={sel.iSEff} tier={sel.iSTier} det={sel.cd} def={sel.iSDef} mobile={mobile}/><SysBlock label="WASP" color="#009966" risk={sel.iWEff} tier={sel.iWTier} det={sel.cd} def={sel.iWDef} mobile={mobile}/></div>
-    <div style={{fontSize:mobile?8:7,color:"#506070",marginTop:4,lineHeight:1.4}}>D = SV-1 detection (cueing) · F = interceptor defeat probability</div>
-    <ScoreRow label="REDDI (Gnat EW)" v={sel.iRDef} color="#00cc88" mobile={mobile}/>
-    <ScoreRow label="SICA (Kinetic)" v={sel.iSDef} color="#00aa77" mobile={mobile}/>
-    <ScoreRow label="WASP (Kinetic)" v={sel.iWDef} color="#009966" mobile={mobile}/>
+    <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,color:"#00cc88",letterSpacing:2,margin:"16px 0 6px"}}>DRONESMOKE INTERCEPTORS (FPV PILOT)</div>
+    <div style={{display:"flex",gap:6,margin:"6px 0"}}><SysBlock label="REDDI" color="#00cc88" risk={sel.iREff} tier={sel.iRTier} det={sel.iFPV} def={sel.iRStr} mobile={mobile}/><SysBlock label="SICA" color="#00aa77" risk={sel.iSEff} tier={sel.iSTier} det={sel.iFPV} def={sel.iSStr} mobile={mobile}/><SysBlock label="WASP" color="#009966" risk={sel.iWEff} tier={sel.iWTier} det={sel.iFPV} def={sel.iWStr} mobile={mobile}/></div>
+    <div style={{fontSize:mobile?8:7,color:"#506070",marginTop:4,lineHeight:1.4}}>D = FPV pilot visual acquisition · F = physical strike on vulnerable components</div>
+    <ScoreRow label="FPV Visual Det" v={sel.iFPV} color="#00ddaa" mobile={mobile}/>
+    <ScoreRow label="REDDI (283mph)" v={sel.iRStr} color="#00cc88" mobile={mobile}/>
+    <ScoreRow label="SICA (170mph 10G)" v={sel.iSStr} color="#00aa77" mobile={mobile}/>
+    <ScoreRow label="WASP (200mph 5G)" v={sel.iWStr} color="#009966" mobile={mobile}/>
     <div style={{marginTop:6,fontSize:mobile?10:8,color:"#405060",lineHeight:1.5}}>
-      {sel.iRDef<40&&sel.cell&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI Gnat EW ineffective: {sel.proto} + cellular survives analog jamming</p>}
-      {sel.iRDef<40&&!sel.cell&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI Gnat EW limited against {sel.proto} robust link</p>}
-      {sel.iSDef<50&&sel.w<500&&<p style={{color:"#00aa77",marginBottom:4}}>⚠ SICA kinetic intercept difficult: {(sel.w/1000).toFixed(1)}kg target too small</p>}
-      {sel.iWDef<50&&sel.w<500&&<p style={{color:"#009966",marginBottom:4}}>⚠ WASP kinetic intercept difficult: {(sel.w/1000).toFixed(1)}kg target, 5G limited</p>}
+      {sel.iFPV<35&&<p style={{color:"#00ddaa",marginBottom:4}}>⚠ FPV pilot acquisition difficult: {(sel.w/1000).toFixed(1)}kg target hard to visually acquire</p>}
+      {sel.iRStr<45&&sel.w<500&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI strike limited: {(sel.w/1000).toFixed(1)}kg target — small prop area at 283 mph closure</p>}
+      {sel.iSStr<45&&sel.s>25&&<p style={{color:"#00aa77",marginBottom:4}}>⚠ SICA closure marginal: target at {sel.s}m/s vs SICA 76m/s</p>}
+      {sel.iWStr<45&&sel.w<500&&<p style={{color:"#009966",marginBottom:4}}>⚠ WASP 5G limits terminal correction against {(sel.w/1000).toFixed(1)}kg agile target</p>}
     </div>
   </div>;
 }

@@ -203,77 +203,115 @@ function analyzeSUADS(d,mo){
 }
 
 // ── DRONESMOKE Interceptor Effectiveness Model ────────────────────────────────
-// All three interceptors rely on SV-1 cueing (cd = composite detection).
-// Effectiveness = SV-1_detection × interceptor_defeat_probability
-// Each interceptor has a unique defeat mechanism scored against each target.
+// All three are FPV-pilot-operated high-speed interceptors.
+// Detection = FPV pilot visual acquisition (independent of SV-1 sensors)
+// Defeat = high-speed physical strike on vulnerable components (props, antennas,
+//          control surfaces) — protocol-independent, NOT kinetic warhead or EW
+// Effectiveness = FPV_visual_detection × physical_strike_probability
 
-// REDDI (MITRE) — Close-proximity analog EW via Gnat jammer
-// 283 mph, VTOL launch, Doodle Labs Mesh C2, $800/unit
-// Defeat: Analog electronic attack at close range — protocol-dependent
-// More effective than standoff jamming because of proximity, but still
-// cannot defeat cellular backup or encrypted autonomous waypoint nav
-function reddiDefeat(d,mo){
-  if(mo.rfSilent)return 15;
-  let b=70;
-  const p=d.proto;
-  if(p.includes("WiFi")||p==="Enhanced WiFi")b=92;
-  else if(p.includes("Lightbridge"))b=85;
-  else if(p.includes("OcuSync")){
-    if(p.includes("Enterprise"))b=58;
-    else if(p.includes("4")||p.includes("O4"))b=62;
-    else if(p.includes("3"))b=67;
-    else b=74;
-  }
-  else if(p.includes("Futaba"))b=80;
-  else if(p.includes("SkyLink")){b=p.includes("3")?48:52;}
-  else if(p.includes("Skydio"))b=46;
-  else if(p.includes("Microhard"))b=38;
-  else if(p.includes("Custom"))b=42;
-  else if(p.includes("Doodle"))b=35;
-  if(d.cell&&!mo.noCell)b-=22;
-  if(d.enc)b-=3;
+// FPV Pilot Visual Detection — independent of SV-1 sensor network
+// Based on target visual signature (size, contrast), target speed (less loiter
+// time = harder to find), and platform profile
+function fpvDetect(d,mo){
+  let b=55;
+  const w=d.w;
+  if(w<=150)b=22;else if(w<=250)b=28;else if(w<=500)b=35;else if(w<=1000)b=45;
+  else if(w<=2000)b=55;else if(w<=5000)b=65;else if(w<=10000)b=75;else b=85;
+  // Fast targets reduce visual acquisition window
+  if(d.s>35)b-=12;else if(d.s>25)b-=7;else if(d.s>20)b-=3;
+  // VTOL in cruise presents smaller visual profile
+  if(d.p==="VTOL")b-=10;
+  // Terrain masking degrades visual tracking
+  if(mo.terrainMask)b-=15;
+  // Swarms overwhelm single FPV pilot focus
   if(mo.swarm)b-=20;
   return cl(b);
 }
 
-// SICA (MIT Lincoln Lab) — Kinetic intercept via SWAP-C warhead + optional EW
-// 170 mph, 10G maneuvering, cell modem (RPi5), $1500/unit
-// Defeat: Kinetic kill — protocol-independent, depends on target size/speed/agility
-// 10G turn capability gives excellent tracking against evasive targets
-function sicaDefeat(d,mo){
-  let b=70;
+// Physical strike scoring — protocol-independent
+// All three interceptors disable targets by striking vulnerable components
+// (props, motor arms, antennas, control surfaces) at high speed.
+// Factors: target vulnerable surface area, speed closure, interceptor agility
+
+// Target vulnerability score — how many/how large are exposed components
+function targetVulnerability(d){
+  let v=50;
+  // More props = more vulnerable strike points
+  const props=d.props||4;
+  if(props>=8)v+=15;else if(props>=6)v+=10;else if(props>=4)v+=5;
+  // Larger prop diameter = bigger target area per prop
+  const pd=d.pd||8;
+  if(pd>=20)v+=18;else if(pd>=15)v+=12;else if(pd>=10)v+=7;else if(pd>=7)v+=3;
+  // Heavier platforms have larger motor arms and structures
   const w=d.w;
-  if(w<=200)b=38;else if(w<=300)b=45;else if(w<=500)b=52;else if(w<=1000)b=62;
-  else if(w<=2000)b=70;else if(w<=5000)b=78;else if(w<=10000)b=86;else b=92;
-  if(d.s>30)b-=10;else if(d.s>25)b-=6;else if(d.s>20)b-=3;
-  if(d.p==="VTOL")b-=10;
-  if(mo.swarm)b-=25;
-  if(mo.terrainMask)b-=15;
+  if(w>=10000)v+=10;else if(w>=5000)v+=6;else if(w>=2000)v+=3;
+  else if(w<=250)v-=15;else if(w<=500)v-=8;
+  // VTOL fixed-wing: fewer exposed props in cruise, hardened airframe
+  if(d.p==="VTOL")v-=12;
+  return cl(v);
+}
+
+// REDDI (MITRE) — 283 mph (126 m/s), ~5-7G, $800
+// Fastest interceptor. Extreme closure speed gives pilot less reaction time
+// on terminal approach, but massive speed advantage over all targets.
+function reddiStrike(d,mo){
+  let b=targetVulnerability(d);
+  // Speed closure: REDDI at 126 m/s vs target
+  // Higher closure = harder for pilot to fine-tune aim, but target can't evade
+  const closure=126-d.s;
+  if(closure>100)b+=10;else if(closure>80)b+=6;else if(closure>50)b+=2;
+  else if(closure<20)b-=15;else if(closure<40)b-=8;
+  // Moderate maneuverability (~5-7G estimated)
+  // Fast targets that jink are harder
+  if(d.s>25&&d.w<2000)b-=5;
+  if(mo.terrainMask)b-=10;
+  if(mo.swarm)b-=18;
   return cl(b);
 }
 
-// WASP (Titan Dynamics) — Kinetic intercept
-// 200 mph, 5G maneuvering, DTC Radio + 5G cell, $8000/unit
-// Defeat: Kinetic kill — protocol-independent, similar to SICA but 5G vs 10G
-// Faster than SICA (200 vs 170 mph) but less maneuverable (5G vs 10G)
-function waspDefeat(d,mo){
-  let b=65;
-  const w=d.w;
-  if(w<=200)b=32;else if(w<=300)b=40;else if(w<=500)b=48;else if(w<=1000)b=57;
-  else if(w<=2000)b=65;else if(w<=5000)b=74;else if(w<=10000)b=82;else b=88;
-  if(d.s>30)b-=8;else if(d.s>25)b-=5;else if(d.s>20)b-=2;
-  if(d.p==="VTOL")b-=8;
-  if(mo.swarm)b-=25;
-  if(mo.terrainMask)b-=15;
+// SICA (MIT Lincoln Lab) — 170 mph (76 m/s), 10G, $1500
+// Most maneuverable. 10G turns give the pilot the best terminal tracking
+// for fine adjustments. Slower than REDDI but better aim window.
+function sicaStrike(d,mo){
+  let b=targetVulnerability(d);
+  // Speed closure: SICA at 76 m/s vs target
+  const closure=76-d.s;
+  if(closure>50)b+=8;else if(closure>30)b+=4;else if(closure>10)b+=0;
+  else if(closure<0)b-=18;else if(closure<10)b-=8;
+  // 10G maneuverability — best terminal tracking
+  b+=8;
+  // Fine aim bonus against large slow targets
+  if(d.w>=5000&&d.s<=20)b+=5;
+  if(mo.terrainMask)b-=10;
+  if(mo.swarm)b-=18;
   return cl(b);
 }
 
-function analyzeInterceptors(d,mo,cd){
-  const rD=reddiDefeat(d,mo),sD=sicaDefeat(d,mo),wD=waspDefeat(d,mo);
-  const rE=cl((cd/100)*(rD/100)*100);
-  const sE=cl((cd/100)*(sD/100)*100);
-  const wE=cl((cd/100)*(wD/100)*100);
-  return{iRDef:rD,iREff:rE,iRTier:effTier(rE),iSDef:sD,iSEff:sE,iSTier:effTier(sE),iWDef:wD,iWEff:wE,iWTier:effTier(wE)};
+// WASP (Titan Dynamics) — 200 mph (89 m/s), 5G, $8000
+// Middle ground: faster than SICA, less maneuverable.
+// 5G limits terminal corrections against agile small targets.
+function waspStrike(d,mo){
+  let b=targetVulnerability(d);
+  // Speed closure: WASP at 89 m/s vs target
+  const closure=89-d.s;
+  if(closure>60)b+=8;else if(closure>40)b+=4;else if(closure>20)b+=0;
+  else if(closure<0)b-=15;else if(closure<10)b-=8;
+  // 5G maneuverability — moderate terminal tracking
+  b+=3;
+  // Less able to fine-tune against small agile targets
+  if(d.w<500&&d.s>15)b-=5;
+  if(mo.terrainMask)b-=10;
+  if(mo.swarm)b-=18;
+  return cl(b);
+}
+
+function analyzeInterceptors(d,mo){
+  const det=fpvDetect(d,mo);
+  const rS=reddiStrike(d,mo),sS=sicaStrike(d,mo),wS=waspStrike(d,mo);
+  const rE=cl((det/100)*(rS/100)*100);
+  const sE=cl((det/100)*(sS/100)*100);
+  const wE=cl((det/100)*(wS/100)*100);
+  return{iFPV:det,iRStr:rS,iREff:rE,iRTier:effTier(rE),iSStr:sS,iSEff:sE,iSTier:effTier(sE),iWStr:wS,iWEff:wE,iWTier:effTier(wE)};
 }
 
 // ── Main Analysis ─────────────────────────────────────────────────────────────
@@ -285,7 +323,7 @@ export function analyzeDrone(d,mods={},tod="day"){
   const or_=cl((cd/100)*(cdf/100)*100);
   const ninja=analyzeNinja(d,mods);
   const suads=analyzeSUADS(d,mods);
-  const intcpt=analyzeInterceptors(d,mods,cd);
+  const intcpt=analyzeInterceptors(d,mods);
   return{...d,rd,ad,rad,ed,cd,pi,jm,gs,cdf,or:or_,rt:effTier(or_),...ninja,...suads,...intcpt};
 }
 
@@ -387,13 +425,13 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
 
   // Interceptor cards
   html+=`<div style="display:flex;gap:12px;margin:8px 0;flex-wrap:wrap">`;
-  html+=`<div class="sb" style="border-color:#00cc88"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00cc88;margin:0 0 4px">REDDI (MITRE) — $800</h3><div style="color:#666">Gnat analog EW jammer · 283 mph · SV-1 cued</div><div class="ts">`;
+  html+=`<div class="sb" style="border-color:#00cc88"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00cc88;margin:0 0 4px">REDDI (MITRE) — $800</h3><div style="color:#666">FPV pilot · Physical strike · 283 mph · Non-kinetic</div><div class="ts">`;
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(rT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${rT[t].length}</div>`;});
   html+=`</div></div>`;
-  html+=`<div class="sb" style="border-color:#00aa77"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00aa77;margin:0 0 4px">SICA (Lincoln Lab) — $1,500</h3><div style="color:#666">Kinetic intercept · 170 mph · 10G · SV-1 cued</div><div class="ts">`;
+  html+=`<div class="sb" style="border-color:#00aa77"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00aa77;margin:0 0 4px">SICA (Lincoln Lab) — $1,500</h3><div style="color:#666">FPV pilot · Physical strike · 170 mph · 10G</div><div class="ts">`;
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(siT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${siT[t].length}</div>`;});
   html+=`</div></div>`;
-  html+=`<div class="sb" style="border-color:#009966"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#009966;margin:0 0 4px">WASP (Titan Dynamics) — $8,000</h3><div style="color:#666">Kinetic intercept · 200 mph · 5G · SV-1 cued</div><div class="ts">`;
+  html+=`<div class="sb" style="border-color:#009966"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#009966;margin:0 0 4px">WASP (Titan Dynamics) — $8,000</h3><div style="color:#666">FPV pilot · Physical strike · 200 mph · 5G</div><div class="ts">`;
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(wT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${wT[t].length}</div>`;});
   html+=`</div></div></div>`;
 
@@ -429,8 +467,8 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   const rCrit=data.filter(d=>d.iRTier==="CRITICAL").length;
   const sCrit=data.filter(d=>d.iSTier==="CRITICAL").length;
   const wCrit=data.filter(d=>d.iWTier==="CRITICAL").length;
-  html+=`<h2 style="color:#00aa77;border-color:#00aa77">DRONESMOKE INTERCEPTOR ASSESSMENT (SV-1 CUED)</h2>`;
-  html+=`<div class="assess">All three DRONESMOKE interceptors depend on SV-1 sensor cueing for target acquisition, so their effectiveness cannot exceed SV-1 detection probability for any given platform. REDDI achieves ${avgR}% average effectiveness using the Gnat analog EW jammer at close range, which works well against consumer protocols (WiFi, Lightbridge, OcuSync) but places ${rCrit} platforms in the CRITICAL tier because encrypted autonomous links like SkyLink, Skydio Link, Microhard, and custom ISM radios with cellular backup resist analog jamming. SICA achieves ${avgS}% average effectiveness through kinetic intercept at 170 mph with 10G maneuvering, placing ${sCrit} platforms in the CRITICAL tier primarily because sub-250g targets present an extremely small kinetic kill window. WASP achieves ${avgW}% average effectiveness through kinetic intercept at 200 mph but with only 5G maneuvering capability, placing ${wCrit} platforms in the CRITICAL tier. SICA and WASP are protocol-independent and defeat platforms that REDDI cannot touch, while REDDI offers a reusable non-kinetic option against consumer drones that preserves the interceptor for multiple engagements. The three interceptors complement the SV-1 electronic attack layer by providing a physical defeat mechanism against platforms that resist protocol injection, jamming, and GPS spoofing.</div>`;
+  html+=`<h2 style="color:#00aa77;border-color:#00aa77">DRONESMOKE INTERCEPTOR ASSESSMENT (FPV PILOT OPERATED)</h2>`;
+  html+=`<div class="assess">All three DRONESMOKE interceptors are FPV-pilot-operated platforms that defeat targets by physically striking vulnerable components (propellers, motor arms, antennas, control surfaces) at high speed. They operate independently of the SV-1 sensor network. Their effectiveness depends on two factors: the FPV pilot's ability to visually acquire the target, and the probability of a successful physical strike on exposed components during a high-speed pass. REDDI achieves ${avgR}% average effectiveness at 283 mph, the fastest closure speed of the three, which gives targets zero evasion window but limits the pilot's terminal correction time, placing ${rCrit} platforms in the CRITICAL tier. SICA achieves ${avgS}% average effectiveness at 170 mph with 10G maneuvering, which gives the pilot the best terminal tracking for fine adjustments against small or agile targets, placing ${sCrit} platforms in the CRITICAL tier. WASP achieves ${avgW}% average effectiveness at 200 mph with 5G maneuvering, a middle ground between REDDI's speed and SICA's agility, placing ${wCrit} platforms in the CRITICAL tier. All three interceptors share the same detection bottleneck: FPV pilot visual acquisition degrades sharply against sub-250g platforms, which have minimal visual signature at engagement ranges. Against large platforms (5kg+) with multiple exposed propellers and wide motor arms, all three achieve high strike probability because the vulnerable surface area is large and slow-moving. The interceptors are protocol-independent and complement the SV-1 electronic attack layer by providing a physical defeat mechanism that works regardless of the target's communication link, encryption, or autonomous navigation capability.</div>`;
 
   // Full table
   html+=`<h2 style="color:#333;border-color:#333">ALL ${data.length} PLATFORMS</h2>`;
