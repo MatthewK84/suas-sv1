@@ -647,12 +647,12 @@ export function generateCAPE(data){
   const sicaEff=scale(avgSica,0.04,0.03);
 
   const systems=[
-    {id:"sv1",label:"SV-1 Multi-Modal",color:"#00cc66",baseCost:1643758,eff:sv1Eff,scale:"Sensor nodes + EA nodes"},
-    {id:"ninja",label:"NINJA Gen2",color:"#cc8800",baseCost:2000000,eff:ninjaEff,scale:"Additional sites"},
-    {id:"suads",label:"RD-SUADS",color:"#2266cc",baseCost:2000000,eff:suadsEff,scale:"Additional sites"},
-    {id:"reddi",label:"REDDI (50 units)",color:"#00cc88",baseCost:100000,eff:reddiEff,scale:"Interceptor units (50→100→150)"},
-    {id:"sica",label:"SICA (50 units)",color:"#00aa77",baseCost:125000,eff:sicaEff,scale:"Interceptor units (50→100→150)"},
-  ];
+    {id:"sv1",label:"SV-1 Multi-Modal",color:"#00ff88",baseCost:1643758,eff:sv1Eff,scale:"Sensor nodes + EA nodes"},
+    {id:"ninja",label:"NINJA Gen2",color:"#ff6644",baseCost:2000000,eff:ninjaEff,scale:"Additional sites"},
+    {id:"suads",label:"RD-SUADS",color:"#4488ff",baseCost:2000000,eff:suadsEff,scale:"Additional sites"},
+    {id:"reddi",label:"REDDI (50 units)",color:"#00ddaa",baseCost:100000,eff:reddiEff,scale:"Interceptor units (50→100→150)"},
+    {id:"sica",label:"SICA (50 units)",color:"#44ccaa",baseCost:125000,eff:sicaEff,scale:"Interceptor units (50→100→150)"},
+  ].sort((a,b)=>b.eff[2]-a.eff[2]);
 
   // Optimal point: SV-1 2x + REDDI 1x + SICA 1x
   // This doubles the sensor/EA backbone and adds both interceptor types

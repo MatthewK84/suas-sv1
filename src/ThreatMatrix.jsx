@@ -92,7 +92,6 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
   const [showMods,setShowMods]=useState(false);
   const [showCompare,setShowCompare]=useState(true);
   const [showInterceptor,setShowInterceptor]=useState(false);
-  const [showCAPE,setShowCAPE]=useState(false);
   const [scenarioName,setScenarioName]=useState("");
   const [copied,setCopied]=useState(false);
   const [customDrones,setCustomDrones]=useState(()=>loadCustomDrones());
@@ -109,7 +108,6 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
   const toggleMod=(k)=>setMods(m=>({...m,[k]:!m[k]}));
   const activeMods=Object.keys(mods).filter(k=>mods[k]);
   const DATA=useMemo(()=>analyzeDrones(mods,tod,customDrones),[mods,tod,customDrones]);
-  const CAPE=useMemo(()=>generateCAPE(DATA),[DATA]);
   const cats=useMemo(()=>["All",...(customDrones.length?["Custom"]:[]),...[...new Set(DATA.map(d=>d.c))].sort()],[DATA,customDrones]);
   const filtered=useMemo(()=>{let r=DATA.filter(d=>{if(filter==="Custom")return d.custom;if(filter!=="All"&&d.c!==filter)return false;if(search&&!d.n.toLowerCase().includes(search.toLowerCase())&&!d.m.toLowerCase().includes(search.toLowerCase()))return false;return true;});r.sort((a,b)=>(a[sort]>b[sort]?1:a[sort]<b[sort]?-1:0)*sortDir);return r;},[DATA,filter,sort,sortDir,search]);
   const tiers=useMemo(()=>{const t={CRITICAL:0,ELEVATED:0,LOW:0};filtered.forEach(d=>t[d.rt]++);return t;},[filtered]);
@@ -133,7 +131,6 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
           <button onClick={()=>setShowUpload(!showUpload)} style={{padding:mobile?"8px 10px":"3px 8px",borderRadius:3,border:"1px solid rgba(100,200,255,0.4)",background:"rgba(100,200,255,0.08)",color:"#66bbff",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:700,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>+PDF</button>
           <button onClick={()=>setShowMods(!showMods)} style={{padding:mobile?"8px 10px":"3px 8px",borderRadius:3,border:"1px solid "+(activeMods.length?"rgba(255,60,60,0.5)":"rgba(255,255,255,0.1)"),background:activeMods.length?"rgba(255,60,60,0.12)":"transparent",color:activeMods.length?"#ff6666":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>{activeMods.length?`⚠(${activeMods.length})`:"MODS"}</button>
           <button onClick={exportPDF} style={{padding:mobile?"8px 8px":"3px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"#8888cc",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600,minHeight:mobile?44:undefined}}>PDF</button>
-          <button onClick={()=>setShowCAPE(!showCAPE)} style={{padding:mobile?"8px 10px":"3px 10px",borderRadius:3,border:`1px solid ${showCAPE?"rgba(255,200,0,0.5)":"rgba(255,255,255,0.1)"}`,background:showCAPE?"rgba(255,200,0,0.1)":"transparent",color:showCAPE?"#ffcc44":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:700,minHeight:mobile?44:undefined,whiteSpace:"nowrap"}}>{showCAPE?"CAPE ✓":"CAPE"}</button>
           <button onClick={saveScen} style={{padding:mobile?"8px 8px":"3px 8px",borderRadius:3,border:"1px solid "+(copied?"rgba(0,255,120,0.5)":"rgba(255,255,255,0.1)"),background:copied?"rgba(0,255,120,0.1)":"transparent",color:copied?"#00ff88":"#607080",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",fontWeight:600,minHeight:mobile?44:undefined,transition:"all 0.3s"}}>{copied?"✓":"SHARE"}</button>
           <button onClick={()=>setShowSettings(!showSettings)} style={{padding:mobile?"8px 6px":"3px 6px",borderRadius:3,border:"1px solid rgba(255,255,255,0.06)",background:"transparent",color:"#405060",fontSize:mobile?14:11,cursor:"pointer",minHeight:mobile?44:undefined}}>⚙</button>
         </div>
@@ -147,96 +144,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
       {showMods&&<div style={{padding:mobile?"8px 12px 12px":"0 20px 12px",display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:8,borderBottom:"1px solid rgba(0,255,120,0.08)"}}>{Object.entries(HARDENED_MODS).map(([k,v])=><div key={k} onClick={()=>toggleMod(k)} style={{display:"flex",gap:10,padding:"8px 10px",borderRadius:4,border:`1px solid ${mods[k]?"rgba(255,60,60,0.4)":"rgba(255,255,255,0.06)"}`,background:mods[k]?"rgba(255,60,60,0.06)":"rgba(255,255,255,0.015)",cursor:"pointer",minHeight:mobile?48:undefined}}><div style={{width:20,height:20,borderRadius:3,border:`2px solid ${mods[k]?"#ff4444":"#303a44"}`,background:mods[k]?"rgba(255,60,60,0.3)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{mods[k]&&<div style={{width:8,height:8,borderRadius:2,background:"#ff4444"}}/>}</div><div><div style={{fontSize:mobile?12:10,fontWeight:600,color:mods[k]?"#ff6666":"#8898a8"}}>{v.icon} {v.label}</div><div style={{fontSize:mobile?10:8,color:"#506070",marginTop:2}}>{v.desc}</div></div></div>)}</div>}
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
-        {showCAPE?(
-          <div style={{flex:1,overflow:"auto",padding:mobile?"12px":"16px 24px",WebkitOverflowScrolling:"touch"}}>
-            <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?14:16,fontWeight:700,color:"#e4ecf4",letterSpacing:2,marginBottom:12}}>COST ASSESSMENT AND PROGRAM EVALUATION</div>
-            {/* Interactive SVG Chart */}
-            <svg viewBox="0 0 800 400" style={{width:"100%",maxWidth:900,background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)"}}>
-              {/* Grid */}
-              {[0,1,2,3,4,5,6].map(i=><line key={`g${i}`} x1="100" y1={50+i*50} x2="750" y2={50+i*50} stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>)}
-              {[0,1,2].map(i=><line key={`v${i}`} x1={175+i*250} y1="40" x2={175+i*250} y2="370" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>)}
-              {/* Y-axis labels (cost) */}
-              <text x="90" y="55" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$6M</text>
-              <text x="90" y="105" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$5M</text>
-              <text x="90" y="155" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$4M</text>
-              <text x="90" y="205" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$3M</text>
-              <text x="90" y="255" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$2M</text>
-              <text x="90" y="305" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$1M</text>
-              <text x="90" y="355" textAnchor="end" fontSize="8" fill="#506070" fontFamily="'IBM Plex Mono',monospace">$0</text>
-              {/* X-axis labels */}
-              {["1x","2x","3x"].map((l,i)=><text key={l} x={175+i*250} y="388" textAnchor="middle" fontSize="10" fill="#e4ecf4" fontFamily="'Oxanium',sans-serif" fontWeight="700" letterSpacing="2">{l}</text>)}
-              <text x="425" y="18" textAnchor="middle" fontSize="9" fill="#506070" fontFamily="'Oxanium',sans-serif" letterSpacing="3">INVESTMENT LEVEL</text>
-              <text x="14" y="210" textAnchor="middle" fontSize="9" fill="#506070" fontFamily="'Oxanium',sans-serif" letterSpacing="2" transform="rotate(-90,14,210)">TOTAL COST</text>
-              {/* System lines */}
-              {CAPE.systems.map(s=>{
-                const pts=[1,2,3].map((lvl,i)=>{
-                  const cost=s.baseCost*lvl;const x=175+i*250;
-                  const y=350-(cost/6000000)*300;
-                  return{x,y,cost,eff:s.eff[i],lvl};
-                });
-                const pathD=pts.map((p,i)=>`${i===0?"M":"L"}${p.x},${p.y}`).join(" ");
-                return<g key={s.id}>
-                  <path d={pathD} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round"/>
-                  {pts.map((p,i)=><g key={i}>
-                    <circle cx={p.x} cy={p.y} r="5" fill="#060a10" stroke={s.color} strokeWidth="2"/>
-                    <title>{`${s.label}\n${p.lvl}x: $${p.cost.toLocaleString()}\nEffectiveness: ${p.eff}%`}</title>
-                    <text x={p.x+(s.id==="ninja"||s.id==="suads"?-8:8)} y={p.y-10} textAnchor={s.id==="ninja"||s.id==="suads"?"end":"start"} fontSize="7" fill={s.color} fontWeight="700" fontFamily="'IBM Plex Mono',monospace">{p.eff}%</text>
-                  </g>)}
-                </g>;
-              })}
-              {/* Optimal point star */}
-              {(()=>{const oCost=CAPE.optimal.cost;const y=350-(oCost/6000000)*300;const x=425;return<g>
-                <line x1={x-20} y1={y} x2={x+20} y2={y} stroke="#00ff88" strokeWidth="1" strokeDasharray="4,2"/>
-                <polygon points={`${x},${y-10} ${x+3},${y-3} ${x+10},${y-3} ${x+4},${y+2} ${x+6},${y+10} ${x},${y+5} ${x-6},${y+10} ${x-4},${y+2} ${x-10},${y-3} ${x-3},${y-3}`} fill="#00ff88" stroke="#060a10" strokeWidth="0.5"/>
-                <text x={x+14} y={y+4} fontSize="8" fill="#00ff88" fontWeight="700" fontFamily="'Oxanium',sans-serif">OPTIMAL</text>
-                <title>{`${CAPE.optimal.label}\nCost: $${CAPE.optimal.cost.toLocaleString()}\nCombined Eff: ${CAPE.optimal.eff}%`}</title>
-              </g>;})()}
-              {/* Legend */}
-              {CAPE.systems.map((s,i)=><g key={`l${s.id}`}>
-                <line x1="110" y1={50+i*16} x2="130" y2={50+i*16} stroke={s.color} strokeWidth="2"/>
-                <circle cx="120" cy={50+i*16} r="3" fill={s.color}/>
-                <text x="136" y={50+i*16+3} fontSize="7" fill={s.color} fontFamily="'IBM Plex Mono',monospace">{s.label}</text>
-              </g>)}
-            </svg>
-
-            {/* Cost table below chart */}
-            <div style={{marginTop:16}}>
-              <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:2,marginBottom:6}}>BASELINE COSTS (1x)</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
-                {CAPE.systems.map(s=><div key={s.id} style={{padding:"8px 10px",background:"rgba(255,255,255,0.02)",border:`1px solid ${s.color}33`,borderRadius:6}}>
-                  <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:9,color:s.color,letterSpacing:1,fontWeight:700}}>{s.label.toUpperCase()}</div>
-                  <div style={{fontSize:16,fontWeight:700,color:"#e4ecf4",margin:"4px 0",fontFamily:"'IBM Plex Mono',monospace"}}>${s.baseCost>=1000000?(s.baseCost/1000000).toFixed(2)+"M":(s.baseCost/1000).toFixed(0)+"K"}</div>
-                  <div style={{fontSize:9,color:"#607080"}}>{s.eff[0]}% effectiveness · ${Math.round(s.baseCost/s.eff[0]).toLocaleString()} per 1%</div>
-                  <div style={{fontSize:8,color:"#405060",marginTop:2}}>Scale: {s.scale}</div>
-                </div>)}
-              </div>
-            </div>
-
-            {/* Scaling table */}
-            <div style={{marginTop:16}}>
-              <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:2,marginBottom:6}}>INVESTMENT SCALING</div>
-              <table style={{width:"100%",borderCollapse:"collapse",fontSize:9,fontFamily:"'IBM Plex Mono',monospace"}}>
-                <thead><tr style={{borderBottom:"1px solid rgba(0,255,120,0.2)"}}>
-                  <th style={{padding:"6px 4px",textAlign:"left",color:"#506070",fontSize:8}}>SYSTEM</th>
-                  {["1x","2x","3x"].map(l=><th key={l} style={{padding:"6px 4px",textAlign:"center",color:"#506070",fontSize:8}} colSpan={2}>{l}</th>)}
-                </tr></thead>
-                <tbody>{CAPE.systems.map((s,i)=><tr key={s.id} style={{borderBottom:"1px solid rgba(255,255,255,0.03)",background:i%2===0?"rgba(255,255,255,0.01)":"transparent"}}>
-                  <td style={{padding:"5px 4px",fontWeight:700,color:s.color,fontSize:9}}>{s.label}</td>
-                  {[0,1,2].map(lvl=><>{
-                    }<td key={`c${lvl}`} style={{padding:"5px 4px",textAlign:"right",color:"#8898a8"}}>${(s.baseCost*(lvl+1)/1000000).toFixed(2)}M</td>
-                    <td key={`e${lvl}`} style={{padding:"5px 4px",textAlign:"center",fontWeight:700,color:s.eff[lvl]>=81?"#00cc66":s.eff[lvl]>=61?"#ff9900":"#ff0000"}}>{s.eff[lvl]}%{lvl>0?<span style={{fontSize:7,color:"#506070",marginLeft:3}}>+{s.eff[lvl]-s.eff[lvl-1]}</span>:null}</td></>)}
-                </tr>)}</tbody>
-              </table>
-            </div>
-
-            {/* Optimal point callout */}
-            <div style={{marginTop:16,padding:"12px 16px",background:"rgba(0,255,120,0.04)",border:"1px solid rgba(0,255,120,0.3)",borderRadius:8}}>
-              <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,fontWeight:700,color:"#00ff88",letterSpacing:2,marginBottom:4}}>★ RECOMMENDED: {CAPE.optimal.label}</div>
-              <div style={{fontSize:11,color:"#e4ecf4",marginBottom:4}}>Total: <span style={{fontWeight:700}}>${CAPE.optimal.cost.toLocaleString()}</span> · Combined Effectiveness: <span style={{fontWeight:700,color:"#00ff88"}}>{CAPE.optimal.eff}%</span> · Cost per 1%: <span style={{fontWeight:700}}>${Math.round(CAPE.optimal.cost/CAPE.optimal.eff).toLocaleString()}</span></div>
-              <div style={{fontSize:9,color:"#8898a8",lineHeight:1.6}}>{CAPE.optimal.rationale}</div>
-            </div>
-          </div>
-        ):mobile?(
+        {mobile?(
           <div style={{flex:1,overflow:"auto",padding:"8px 12px",WebkitOverflowScrolling:"touch"}}>
             {filtered.map((d,i)=><ThreatCard key={d.n+i} d={d} onTap={dd=>setSel(sel&&sel.n===dd.n?null:dd)} isSel={sel&&sel.n===d.n} showCompare={showCompare}/>)}
             {!filtered.length&&<div style={{textAlign:"center",padding:40,color:"#405060"}}>No match</div>}
@@ -281,6 +189,125 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
         {sel&&!mobile&&<div style={{width:340,borderLeft:"1px solid rgba(0,255,120,0.15)",overflow:"auto",background:"rgba(0,10,5,0.5)",flexShrink:0}}><DetailContent sel={sel} mods={mods} tod={tod} onShowOnMap={onShowOnMap} onClose={()=>setSel(null)} onDelete={deleteCustom} mobile={false}/></div>}
       </div>
       {sel&&mobile&&<div style={{position:"absolute",bottom:0,left:0,right:0,maxHeight:"75vh",overflow:"auto",background:"#0a0e14",borderTop:"2px solid rgba(0,255,120,0.3)",borderRadius:"16px 16px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.6)",zIndex:10,WebkitOverflowScrolling:"touch"}}><div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"10px auto 0"}}/><DetailContent sel={sel} mods={mods} tod={tod} onShowOnMap={onShowOnMap} onClose={()=>setSel(null)} onDelete={deleteCustom} mobile={true}/></div>}
+    </div>
+  );
+}
+
+// ── CAPE View (standalone tab) ────────────────────────────────────────────────
+const CC={sv1:"#00ff88",ninja:"#ff6644",suads:"#4488ff",reddi:"#00ddaa",sica:"#44ccaa"};
+
+export function CAPEView({mobile}){
+  const DATA=useMemo(()=>analyzeDrones({}),[]);
+  const CAPE=useMemo(()=>generateCAPE(DATA),[DATA]);
+  // Sort systems by 3x effectiveness descending
+  const sorted=useMemo(()=>[...CAPE.systems].sort((a,b)=>b.eff[2]-a.eff[2]),[CAPE]);
+  const maxCost=6000000;
+  const costY=(c)=>340-(c/maxCost)*290;
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:mobile?"12px":"20px 32px",WebkitOverflowScrolling:"touch",height:`calc(100vh - ${mobile?52:90}px)`,background:"#060a10"}}>
+      <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:5,fontWeight:300,marginBottom:4}}>SHAW AFB C-UAS</div>
+      <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:22,fontWeight:700,color:"#e4ecf4",letterSpacing:2,marginBottom:16}}>COST ASSESSMENT AND PROGRAM EVALUATION</div>
+
+      {/* Main Chart */}
+      <svg viewBox="0 0 820 420" style={{width:"100%",maxWidth:960,background:"linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.005))",borderRadius:10,border:"1px solid rgba(0,255,120,0.08)",padding:8}}>
+        {/* Grid lines */}
+        {[0,1,2,3,4,5,6].map(i=><line key={`g${i}`} x1="100" y1={50+i*48.3} x2="760" y2={50+i*48.3} stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>)}
+        {[0,1,2].map(i=><line key={`v${i}`} x1={180+i*260} y1="35" x2={180+i*260} y2="365" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="4,4"/>)}
+
+        {/* Y-axis labels */}
+        {["$6M","$5M","$4M","$3M","$2M","$1M","$0"].map((l,i)=><text key={l} x="90" y={54+i*48.3} textAnchor="end" fontSize="9" fill="#506070" fontFamily="'IBM Plex Mono',monospace">{l}</text>)}
+        <text x="14" y="210" textAnchor="middle" fontSize="9" fill="#506070" fontFamily="'Oxanium',sans-serif" letterSpacing="2" transform="rotate(-90,14,210)">TOTAL COST</text>
+
+        {/* X-axis labels */}
+        {["1x BASELINE","2x INVESTMENT","3x INVESTMENT"].map((l,i)=><text key={l} x={180+i*260} y={395} textAnchor="middle" fontSize="10" fill="#e4ecf4" fontFamily="'Oxanium',sans-serif" fontWeight="700" letterSpacing="2">{l}</text>)}
+
+        {/* Optimal zone highlight */}
+        <rect x="390" y={costY(CAPE.optimal.cost)-22} width="180" height="44" rx="6" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.25)" strokeWidth="1.5" strokeDasharray="6,3"/>
+
+        {/* System lines — sorted by final effectiveness */}
+        {sorted.map((s,si)=>{
+          const c=CC[s.id]||s.color;
+          const pts=[1,2,3].map((lvl,i)=>({x:180+i*260,y:costY(s.baseCost*lvl),cost:s.baseCost*lvl,eff:s.eff[i],lvl}));
+          const pathD=pts.map((p,i)=>`${i===0?"M":"L"}${p.x},${p.y}`).join(" ");
+          return<g key={s.id}>
+            {/* Line glow */}
+            <path d={pathD} fill="none" stroke={c} strokeWidth="5" strokeLinejoin="round" opacity="0.15"/>
+            <path d={pathD} fill="none" stroke={c} strokeWidth="2.5" strokeLinejoin="round"/>
+            {pts.map((p,i)=><g key={i}>
+              <circle cx={p.x} cy={p.y} r="7" fill="#060a10" stroke={c} strokeWidth="2.5"/>
+              <circle cx={p.x} cy={p.y} r="3" fill={c}/>
+              <title>{`${s.label}\n${p.lvl}x: $${p.cost.toLocaleString()}\nEffectiveness: ${p.eff}%`}</title>
+              {/* Effectiveness labels */}
+              <rect x={p.x-14} y={p.y-22} width="28" height="14" rx="3" fill="#060a10" stroke={c} strokeWidth="0.8"/>
+              <text x={p.x} y={p.y-12} textAnchor="middle" fontSize="8" fill={c} fontWeight="700" fontFamily="'IBM Plex Mono',monospace">{p.eff}%</text>
+            </g>)}
+          </g>;
+        })}
+
+        {/* Optimal point */}
+        {(()=>{const oCost=CAPE.optimal.cost;const y=costY(oCost);const x=440;return<g>
+          <line x1={x-30} y1={y} x2={x+30} y2={y} stroke="#00ff88" strokeWidth="1.5" strokeDasharray="4,3"/>
+          <polygon points={`${x},${y-14} ${x+4},${y-4} ${x+13},${y-4} ${x+6},${y+2} ${x+8},${y+13} ${x},${y+7} ${x-8},${y+13} ${x-6},${y+2} ${x-13},${y-4} ${x-4},${y-4}`} fill="#00ff88" stroke="#060a10" strokeWidth="1"/>
+          <rect x={x+18} y={y-12} width="130" height="24" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" strokeWidth="1"/>
+          <text x={x+24} y={y-1} fontSize="8" fill="#00ff88" fontWeight="700" fontFamily="'Oxanium',sans-serif" letterSpacing="1">★ OPTIMAL POINT</text>
+          <text x={x+24} y={y+9} fontSize="7" fill="#88ccaa" fontFamily="'IBM Plex Mono',monospace">${(oCost/1000000).toFixed(2)}M · {CAPE.optimal.eff}%</text>
+          <title>{`${CAPE.optimal.label}\nCost: $${CAPE.optimal.cost.toLocaleString()}\nCombined: ${CAPE.optimal.eff}%`}</title>
+        </g>;})()}
+
+        {/* Legend — stacked by effectiveness */}
+        {sorted.map((s,i)=>{const c=CC[s.id]||s.color;return<g key={`l${s.id}`}>
+          <line x1="110" y1={50+i*18} x2="132" y2={50+i*18} stroke={c} strokeWidth="2.5"/>
+          <circle cx="121" cy={50+i*18} r="3.5" fill={c}/>
+          <text x="138" y={50+i*18+3.5} fontSize="8" fill={c} fontWeight="600" fontFamily="'IBM Plex Mono',monospace">{s.label} ({s.eff[2]}%)</text>
+        </g>;})}
+
+        {/* Diminishing returns annotation */}
+        <text x="700" y="48" textAnchor="middle" fontSize="7" fill="#506070" fontFamily="'Oxanium',sans-serif" letterSpacing="1">DIMINISHING RETURNS →</text>
+        <line x1="650" y1="44" x2="740" y2="44" stroke="#506070" strokeWidth="0.5" markerEnd="url(#arr)"/>
+        <defs><marker id="arr" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#506070"/></marker></defs>
+      </svg>
+
+      {/* Baseline cost cards */}
+      <div style={{marginTop:20}}>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:3,marginBottom:8}}>BASELINE SYSTEM COSTS (1x)</div>
+        <div style={{display:"grid",gridTemplateColumns:mobile?"1fr 1fr":`repeat(${sorted.length},1fr)`,gap:10}}>
+          {sorted.map(s=>{const c=CC[s.id]||s.color;return<div key={s.id} style={{padding:"10px 12px",background:`linear-gradient(135deg,${c}08,${c}03)`,border:`1px solid ${c}44`,borderRadius:8}}>
+            <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:9,color:c,letterSpacing:1.5,fontWeight:700}}>{s.label.toUpperCase()}</div>
+            <div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",margin:"6px 0",fontFamily:"'IBM Plex Mono',monospace"}}>{s.baseCost>=1000000?"$"+(s.baseCost/1000000).toFixed(2)+"M":"$"+(s.baseCost/1000).toFixed(0)+"K"}</div>
+            <div style={{fontSize:9,color:"#8898a8"}}>{s.eff[0]}% eff · ${Math.round(s.baseCost/s.eff[0]).toLocaleString()}/1%</div>
+            <div style={{fontSize:8,color:"#506070",marginTop:3}}>{s.scale}</div>
+          </div>;})}
+        </div>
+      </div>
+
+      {/* Investment scaling table */}
+      <div style={{marginTop:20}}>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:3,marginBottom:8}}>INVESTMENT SCALING</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}}>
+          <thead><tr style={{borderBottom:"2px solid rgba(0,255,120,0.15)"}}>
+            <th style={{padding:"8px 6px",textAlign:"left",color:"#607080",fontSize:8,letterSpacing:1}}>SYSTEM</th>
+            {["1x BASELINE","2x","3x"].map(l=><th key={l} style={{padding:"8px 6px",textAlign:"center",color:"#607080",fontSize:8,letterSpacing:1}} colSpan={2}>{l}</th>)}
+          </tr></thead>
+          <tbody>{sorted.map((s,i)=>{const c=CC[s.id]||s.color;return<tr key={s.id} style={{borderBottom:"1px solid rgba(255,255,255,0.03)",background:i%2===0?"rgba(255,255,255,0.01)":"transparent"}}>
+            <td style={{padding:"6px",fontWeight:700,color:c,fontSize:10}}>{s.label}</td>
+            {[0,1,2].map(lvl=><>{
+              }<td key={`c${lvl}`} style={{padding:"6px",textAlign:"right",color:"#8898a8",fontSize:9}}>${(s.baseCost*(lvl+1)/1000000).toFixed(2)}M</td>
+              <td key={`e${lvl}`} style={{padding:"6px",textAlign:"center",fontWeight:700,fontSize:11,color:s.eff[lvl]>=81?"#00ff88":s.eff[lvl]>=61?"#ff9900":"#ff4444"}}>{s.eff[lvl]}%{lvl>0&&<span style={{fontSize:8,color:"#506070",marginLeft:4}}>+{s.eff[lvl]-s.eff[lvl-1]}</span>}</td></>)}
+          </tr>;})}</tbody>
+        </table>
+      </div>
+
+      {/* Optimal recommendation */}
+      <div style={{marginTop:20,padding:"16px 20px",background:"linear-gradient(135deg,rgba(0,255,136,0.06),rgba(0,255,136,0.02))",border:"2px solid rgba(0,255,136,0.35)",borderRadius:10}}>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:14,fontWeight:700,color:"#00ff88",letterSpacing:2,marginBottom:6}}>★ RECOMMENDED: {CAPE.optimal.label}</div>
+        <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:8}}>
+          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>TOTAL COST</div><div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",fontFamily:"'IBM Plex Mono',monospace"}}>${(CAPE.optimal.cost/1000000).toFixed(2)}M</div></div>
+          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>COMBINED EFF</div><div style={{fontSize:18,fontWeight:700,color:"#00ff88",fontFamily:"'IBM Plex Mono',monospace"}}>{CAPE.optimal.eff}%</div></div>
+          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>COST PER 1%</div><div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",fontFamily:"'IBM Plex Mono',monospace"}}>${Math.round(CAPE.optimal.cost/CAPE.optimal.eff).toLocaleString()}</div></div>
+        </div>
+        <div style={{fontSize:10,color:"#8898a8",lineHeight:1.7}}>{CAPE.optimal.rationale}</div>
+      </div>
     </div>
   );
 }

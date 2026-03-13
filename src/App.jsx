@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import ThreatMatrix from "./ThreatMatrix";
+import ThreatMatrix, { CAPEView } from "./ThreatMatrix";
 import { getNodeEffectiveness } from "./threatData";
 
 function useFonts(){useEffect(()=>{const l=document.createElement("link");l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";l.rel="stylesheet";document.head.appendChild(l);return()=>document.head.removeChild(l);},[]);}
@@ -45,6 +45,8 @@ export default function App(){
             <h1 onClick={()=>setView("map")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="map"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SV-1 MAP</h1>
             <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
             <h1 onClick={()=>setView("threat")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="threat"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>THREATS</h1>
+            <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
+            <h1 onClick={()=>setView("cape")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="cape"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>CAPE</h1>
           </div>
           {!mobile&&<div style={{fontSize:10,color:"#506070",marginTop:3}}>Shaw AFB, Sumter SC · 4 Phenomenologies · SV-1 vs RD-SUADS vs NINJA</div>}
         </div>
@@ -56,6 +58,8 @@ export default function App(){
 
       {view==="threat"?(
         <ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>
+      ):view==="cape"?(
+        <CAPEView mobile={mobile}/>
       ):(
         <div style={{display:"flex",flexDirection:"column",height:`calc(100vh - ${mobile?52:90}px)`,overflow:"hidden"}}>
           {threat&&eff&&(
