@@ -593,7 +593,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
 
   // Optimal investment point
   html+=`<h2 style="color:#0a4;border-color:#0a4">OPTIMAL INVESTMENT POINT</h2>`;
-  html+=`<div class="assess">${cape.assessment}</div>`;
+  html+=`<div class="assess">${cape.optimal.rationale}</div>`;
 
   // Visual cost-effectiveness chart (HTML/CSS bars)
   html+=`<h2 style="color:#333;border-color:#333">COST vs EFFECTIVENESS AT EACH INVESTMENT LEVEL</h2>`;
@@ -621,7 +621,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   html+=`<div style="font-size:8px;color:#444;margin-top:4px">${cape.optimal.rationale}</div>`;
   html+=`</div>`;
 
-  html+=`<div class="ft"><span>Shaw AFB C-UAS · CAPE Analysis</span><span>Costs in FY26 USD · Effectiveness = avg detect+defeat rate across ${data.length} platforms</span></div></div></body></html>`;
+  html+=`<div style="margin-top:8px;padding-top:4px;border-top:1px solid #ccc;font-size:7px;color:#888;display:flex;justify-content:space-between"><span>Shaw AFB C-UAS · CAPE Analysis</span><span>Costs in FY26 USD · Effectiveness = avg detect+defeat rate across ${data.length} platforms</span></div></div></body></html>`;
   return html;
 }
 
