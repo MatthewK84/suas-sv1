@@ -559,6 +559,113 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   });
   html+=`</table>`;
 
-  html+=`<div class="ft"><span>Shaw AFB C-UAS · SV-1 vs RD-SUADS vs NINJA · ${data.length} platforms</span><span>SV-1: 40 RF/EA · 30 radars · 24 acoustic · 12 EO/IR · 2 C2</span></div></div></body></html>`;
+  html+=`<div class="ft"><span>Shaw AFB C-UAS · SV-1 vs RD-SUADS vs NINJA · ${data.length} platforms</span><span>SV-1: 40 RF/EA · 30 radars · 24 acoustic · 12 EO/IR · 2 C2</span></div>`;
+
+  // ── CAPE Tab ──────────────────────────────────────────────────────────────
+  html+=`<div class="pb"></div>`;
+  const cape=generateCAPE(data);
+  html+=`<h1>COST ASSESSMENT AND PROGRAM EVALUATION (CAPE)</h1>`;
+  html+=`<div class="meta"><span>Shaw AFB, Sumter SC · 20th FW · Investment Analysis</span><span>${now} · UNCLASSIFIED // FOUO</span></div>`;
+
+  // Baseline costs table
+  html+=`<h2 style="color:#333;border-color:#333">BASELINE SYSTEM COSTS (1x INVESTMENT)</h2>`;
+  html+=`<table><tr><th>SYSTEM</th><th>1x COST</th><th style="text-align:center">AVG EFFECTIVENESS</th><th style="text-align:center">COST PER 1% EFF</th><th>SCALING MODEL</th></tr>`;
+  cape.systems.forEach(s=>{
+    html+=`<tr><td style="font-weight:700;color:${s.color}">${s.label}</td>`;
+    html+=`<td style="font-weight:700">$${s.baseCost.toLocaleString()}</td>`;
+    html+=`<td class="sc" style="color:${s.eff[0]>=81?'#00cc66':s.eff[0]>=61?'#ff9900':'#ff0000'}">${s.eff[0]}%</td>`;
+    html+=`<td class="sc">$${Math.round(s.baseCost/s.eff[0]).toLocaleString()}</td>`;
+    html+=`<td>${s.scale}</td></tr>`;
+  });
+  html+=`</table>`;
+
+  // Investment scaling table
+  html+=`<h2 style="color:#333;border-color:#333">INVESTMENT SCALING (1x → 2x → 3x)</h2>`;
+  html+=`<table><tr><th>SYSTEM</th><th style="text-align:center">1x COST</th><th style="text-align:center">1x EFF</th><th style="text-align:center">2x COST</th><th style="text-align:center">2x EFF</th><th style="text-align:center">Δ EFF</th><th style="text-align:center">3x COST</th><th style="text-align:center">3x EFF</th><th style="text-align:center">Δ EFF</th></tr>`;
+  cape.systems.forEach(s=>{
+    const d12=s.eff[1]-s.eff[0];const d23=s.eff[2]-s.eff[1];
+    html+=`<tr><td style="font-weight:700;color:${s.color}">${s.label}</td>`;
+    html+=`<td class="sc">$${s.baseCost.toLocaleString()}</td><td class="sc" style="color:${s.color}">${s.eff[0]}%</td>`;
+    html+=`<td class="sc">$${(s.baseCost*2).toLocaleString()}</td><td class="sc" style="color:${s.color}">${s.eff[1]}%</td><td class="sc ${d12>0?'dp':'dn'}">+${d12}%</td>`;
+    html+=`<td class="sc">$${(s.baseCost*3).toLocaleString()}</td><td class="sc" style="color:${s.color}">${s.eff[2]}%</td><td class="sc ${d23>0?'dp':'dn'}">+${d23}%</td></tr>`;
+  });
+  html+=`</table>`;
+
+  // Optimal investment point
+  html+=`<h2 style="color:#0a4;border-color:#0a4">OPTIMAL INVESTMENT POINT</h2>`;
+  html+=`<div class="assess">${cape.assessment}</div>`;
+
+  // Visual cost-effectiveness chart (HTML/CSS bars)
+  html+=`<h2 style="color:#333;border-color:#333">COST vs EFFECTIVENESS AT EACH INVESTMENT LEVEL</h2>`;
+  const maxCost=Math.max(...cape.systems.map(s=>s.baseCost*3));
+  [1,2,3].forEach(lvl=>{
+    html+=`<div style="margin:8px 0 12px"><div style="font-family:Oxanium,sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;margin-bottom:4px">${lvl}x INVESTMENT</div>`;
+    cape.systems.forEach(s=>{
+      const cost=s.baseCost*lvl;const eff=s.eff[lvl-1];const pct=Math.round((cost/maxCost)*100);
+      html+=`<div style="display:flex;align-items:center;gap:6px;margin:2px 0">`;
+      html+=`<div style="width:80px;font-size:7px;font-weight:700;color:${s.color};text-align:right">${s.id.toUpperCase()}</div>`;
+      html+=`<div style="flex:1;height:14px;background:#f0f0f0;border-radius:2px;position:relative;overflow:hidden">`;
+      html+=`<div style="width:${pct}%;height:100%;background:${s.color}22;border-right:2px solid ${s.color}"></div>`;
+      html+=`</div>`;
+      html+=`<div style="width:80px;font-size:7px;font-weight:600">$${(cost/1000000).toFixed(2)}M</div>`;
+      html+=`<div style="width:40px;font-size:8px;font-weight:700;color:${s.color}">${eff}%</div>`;
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+  });
+
+  // Optimal combo highlight
+  html+=`<div style="background:#e8ffe8;border:2px solid #00cc66;border-radius:6px;padding:10px;margin:12px 0">`;
+  html+=`<div style="font-family:Oxanium,sans-serif;font-size:11px;font-weight:700;color:#0a4;letter-spacing:2px;margin-bottom:4px">★ RECOMMENDED: ${cape.optimal.label}</div>`;
+  html+=`<div style="font-size:9px;color:#222">Total: <strong>$${cape.optimal.cost.toLocaleString()}</strong> · Combined Effectiveness: <strong>${cape.optimal.eff}%</strong> · Cost per 1%: <strong>$${Math.round(cape.optimal.cost/cape.optimal.eff).toLocaleString()}</strong></div>`;
+  html+=`<div style="font-size:8px;color:#444;margin-top:4px">${cape.optimal.rationale}</div>`;
+  html+=`</div>`;
+
+  html+=`<div class="ft"><span>Shaw AFB C-UAS · CAPE Analysis</span><span>Costs in FY26 USD · Effectiveness = avg detect+defeat rate across ${data.length} platforms</span></div></div></body></html>`;
   return html;
+}
+
+// ── CAPE Model ────────────────────────────────────────────────────────────────
+export function generateCAPE(data){
+  const total=data.length;
+  const avgSV1=Math.round(data.reduce((a,d)=>a+d.or,0)/total);
+  const avgNinja=Math.round(data.reduce((a,d)=>a+d.nRisk,0)/total);
+  const avgSuads=Math.round(data.reduce((a,d)=>a+d.sRisk,0)/total);
+  const avgReddi=Math.round(data.reduce((a,d)=>a+d.iREff,0)/total);
+  const avgSica=Math.round(data.reduce((a,d)=>a+d.iSEff,0)/total);
+
+  // Scaling model: diminishing returns at each investment multiplier
+  // SV-1: adding sensors/EA fills coverage gaps → strong returns at 2x, diminishing at 3x
+  // NINJA/SUADS: adding sites → limited returns (same fundamental capability gaps)
+  // REDDI/SICA: adding units → sortie capacity scales, per-engagement stays similar
+  function scale(base,r2,r3){return[base,Math.round(base+(100-base)*r2),Math.round(base+(100-base)*r2+(100-base-(100-base)*r2)*r3)];}
+
+  const sv1Eff=scale(avgSV1,0.38,0.35);
+  const ninjaEff=scale(avgNinja,0.09,0.06);
+  const suadsEff=scale(avgSuads,0.12,0.08);
+  const reddiEff=scale(avgReddi,0.04,0.03);
+  const sicaEff=scale(avgSica,0.04,0.03);
+
+  const systems=[
+    {id:"sv1",label:"SV-1 Multi-Modal",color:"#00cc66",baseCost:1643758,eff:sv1Eff,scale:"Sensor nodes + EA nodes"},
+    {id:"ninja",label:"NINJA Gen2",color:"#cc8800",baseCost:2000000,eff:ninjaEff,scale:"Additional sites"},
+    {id:"suads",label:"RD-SUADS",color:"#2266cc",baseCost:2000000,eff:suadsEff,scale:"Additional sites"},
+    {id:"reddi",label:"REDDI (50 units)",color:"#00cc88",baseCost:100000,eff:reddiEff,scale:"Interceptor units (50→100→150)"},
+    {id:"sica",label:"SICA (50 units)",color:"#00aa77",baseCost:125000,eff:sicaEff,scale:"Interceptor units (50→100→150)"},
+  ];
+
+  // Optimal point: SV-1 2x + REDDI 1x + SICA 1x
+  // This doubles the sensor/EA backbone and adds both interceptor types
+  // Beyond this, adding 3x SV-1 costs another $1.64M for ~3% more effectiveness
+  const optCost=1643758*2+100000+125000;
+  // Combined effectiveness: SV-1 2x provides detection+EA, interceptors add physical defeat layer
+  // For platforms where SV-1 EA fails, interceptors provide backup
+  // Model: use SV-1 2x as base, boost by interceptor coverage on platforms where SV-1 EA<70%
+  const sv1_2x=sv1Eff[1];
+  const intcptBoost=Math.round((100-sv1_2x)*0.25);
+  const combinedEff=Math.min(98,sv1_2x+intcptBoost);
+
+  const optRationale=`SV-1 at 2x investment ($${(1643758*2).toLocaleString()}) adds sensor density that closes coverage gaps and pushes average effectiveness from ${sv1Eff[0]}% to ${sv1Eff[1]}%. Adding REDDI ($100,000) and SICA ($125,000) provides a physical defeat layer against the ${data.filter(d=>d.or<=70).length} platforms where SV-1 electronic attack scores below 70%. The combined investment of $${optCost.toLocaleString()} achieves ${combinedEff}% estimated combined effectiveness. A 3x SV-1 investment ($${(1643758*3).toLocaleString()}) would add only ${sv1Eff[2]-sv1Eff[1]}% more effectiveness for an additional $${(1643758).toLocaleString()}, placing that incremental dollar well into diminishing returns. NINJA at any investment level ($${(2000000).toLocaleString()} to $${(6000000).toLocaleString()}) never exceeds ${ninjaEff[2]}% due to its RF-only detection and protocol-dependent defeat. SUADS peaks at ${suadsEff[2]}% at 3x ($${(6000000).toLocaleString()}), still ${sv1Eff[0]-suadsEff[2]}% below SV-1 at 1x for nearly 4x the cost.`;
+
+  return{systems,optimal:{label:"SV-1 (2x) + REDDI (1x) + SICA (1x)",cost:optCost,eff:combinedEff,rationale:optRationale}};
 }
