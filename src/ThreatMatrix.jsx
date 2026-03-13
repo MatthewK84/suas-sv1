@@ -65,6 +65,13 @@ function DetailContent({sel,mods,tod,onShowOnMap,onClose,onDelete,mobile}){
     <ScoreRow label="REDDI (283mph)" v={sel.iRStr} color="#00cc88" mobile={mobile}/>
     <ScoreRow label="SICA (170mph 10G)" v={sel.iSStr} color="#00aa77" mobile={mobile}/>
     <ScoreRow label="WASP (200mph 5G)" v={sel.iWStr} color="#009966" mobile={mobile}/>
+
+    {/* Wolf Block 3 — AI seeker, separate detection model */}
+    <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,color:"#b8960a",letterSpacing:2,margin:"16px 0 6px"}}>WOLF BLOCK 3 (AI SEEKER · AUTONOMOUS)</div>
+    <div style={{display:"flex",gap:6,margin:"6px 0"}}><SysBlock label="WOLF" color="#b8960a" risk={sel.iWolfEff} tier={sel.iWolfTier} det={sel.iWolfDet} def={sel.iWolfStr} mobile={mobile}/></div>
+    <div style={{fontSize:mobile?8:7,color:"#506070",marginTop:4,lineHeight:1.4}}>D = AI seeker (dual EO/IR + YOLO) · F = PN-guided physical strike</div>
+    <ScoreRow label="AI Seeker Det" v={sel.iWolfDet} color="#b8960a" mobile={mobile}/>
+    <ScoreRow label="PN Strike (175mph)" v={sel.iWolfStr} color="#b8960a" mobile={mobile}/>
     <div style={{marginTop:6,fontSize:mobile?10:8,color:"#405060",lineHeight:1.5}}>
       {sel.iFPV<35&&<p style={{color:"#00ddaa",marginBottom:4}}>⚠ FPV pilot acquisition difficult: {(sel.w/1000).toFixed(1)}kg target hard to visually acquire</p>}
       {sel.iRStr<45&&sel.w<500&&<p style={{color:"#00cc88",marginBottom:4}}>⚠ REDDI strike limited: {(sel.w/1000).toFixed(1)}kg target — small prop area at 283 mph closure</p>}
@@ -151,7 +158,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
                 <SH k="pi">INJ</SH><SH k="jm">JAM</SH><SH k="gs">GPS</SH>
                 <SH k="or" bg="#001a08">SV-1</SH>
                 {showCompare&&<><SH k="sRisk" bg="#0a1a33">SUADS</SH><SH k="nRisk" bg="#1a1100">NINJA</SH></>}
-                {showInterceptor&&<><SH k="iREff" bg="#0a1a1a">REDDI</SH><SH k="iSEff" bg="#0a1a1a">SICA</SH><SH k="iWEff" bg="#0a1a1a">WASP</SH></>}
+                {showInterceptor&&<><SH k="iREff" bg="#0a1a1a">REDDI</SH><SH k="iSEff" bg="#0a1a1a">SICA</SH><SH k="iWEff" bg="#0a1a1a">WASP</SH><SH k="iWolfEff" bg="#0a1a1a">WOLF</SH></>}
               </tr></thead>
               <tbody>{filtered.map((d,i)=>{const isSel=sel&&sel.n===d.n;return(<tr key={d.n+i} onClick={()=>setSel(isSel?null:d)} style={{cursor:"pointer",background:isSel?"rgba(0,255,120,0.08)":i%2===0?"rgba(255,255,255,0.01)":"transparent",borderBottom:"1px solid rgba(255,255,255,0.03)"}} onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background="rgba(0,255,120,0.04)";}} onMouseLeave={e=>{if(!isSel)e.currentTarget.style.background=i%2===0?"rgba(255,255,255,0.01)":"transparent";}}>
                 <td style={{padding:"5px 2px",fontWeight:600,color:"#e4ecf4",maxWidth:130,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.custom&&<span style={{fontSize:7,background:"rgba(100,100,255,0.2)",color:"#aaf",padding:"0 3px",borderRadius:2,marginRight:3}}>C</span>}{d.n}</td>
@@ -173,6 +180,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
                   <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.15)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iRTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iREff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iRTier],background:TB[d.iRTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iRTier}</span></div></td>
                   <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.1)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iSTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iSEff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iSTier],background:TB[d.iSTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iSTier}</span></div></td>
                   <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(0,200,150,0.1)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iWTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iWEff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iWTier],background:TB[d.iWTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iWTier}</span></div></td>
+                  <td style={{padding:"5px 2px",borderLeft:"2px solid rgba(180,140,0,0.15)"}}><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:11,fontWeight:700,color:TC[d.iWolfTier],fontFamily:"'Oxanium',sans-serif"}}>{d.iWolfEff}%</span><span style={{fontSize:6,fontWeight:700,color:TC[d.iWolfTier],background:TB[d.iWolfTier],padding:"1px 3px",borderRadius:2,fontFamily:"'Oxanium',sans-serif"}}>{d.iWolfTier}</span></div></td>
                 </>}
               </tr>);})}</tbody>
             </table>

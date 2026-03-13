@@ -106,6 +106,7 @@ const DRONES=[
   {n:"REDDI",m:"MITRE",c:"Enterprise",p:"VTOL",w:1814,s:126,ft:5,pr:800,proto:"Doodle Labs Mesh",rtk:false,wp:false,cell:false,enc:true,auto:false,fs:"Land",props:1,pd:8},
   {n:"SICA",m:"MIT Lincoln Lab",c:"Enterprise",p:"VTOL",w:2994,s:76,ft:10,pr:1500,proto:"Custom ISM",rtk:false,wp:false,cell:true,enc:true,auto:false,fs:"Land",props:1,pd:10},
   {n:"WASP",m:"Titan Dynamics",c:"Enterprise",p:"VTOL",w:1814,s:89,ft:8,pr:8000,proto:"Custom ISM",rtk:false,wp:false,cell:true,enc:true,auto:false,fs:"Land",props:1,pd:8},
+  {n:"Wolf Block 3",m:"Wolf Program",c:"Enterprise",p:"VTOL",w:11300,s:78,ft:25,pr:27500,proto:"Doodle Labs Mesh",rtk:false,wp:true,cell:false,enc:true,auto:true,fs:"RTH",props:5,pd:10},
 ];
 
 const INJECTABLE=new Set(["OcuSync","OcuSync 2","OcuSync 3","OcuSync 3+","OcuSync 4","OcuSync 4+","OcuSync O4","OcuSync O4+","OcuSync 2 Enterprise","OcuSync 3 Enterprise","OcuSync 4 Enterprise","Lightbridge","Lightbridge 2","Enhanced WiFi","WiFi","WiFi 6"]);
@@ -305,13 +306,71 @@ function waspStrike(d,mo){
   return cl(b);
 }
 
+// Wolf Block 3 (Wolf Program) — 175 mph (78 m/s), 5g inst / 3.5g sust, $27,500
+// FUNDAMENTALLY DIFFERENT from REDDI/SICA/WASP:
+//   Detection: Dual EO/IR AI seeker (YOLO 30fps on Jetson Orin Nano) + external
+//     radar cueing via ASTERIX/STANAG/MAVLink/JSON/CoT. NOT FPV pilot visual.
+//   Defeat: AI-guided proportional navigation terminal strike — net capture or
+//     kinetic ram. Autonomous kill chain from cueing through impact.
+// Detection is NOT limited by FPV pilot eyeballs — thermal/EO AI seeker acquires
+// targets that are invisible to the human eye (small, fast, night, cluttered BG).
+
+function wolfDetect(d,mo){
+  // AI seeker detection via dual EO/IR + YOLO
+  // Thermal channel (FLIR Boson 640 LWIR) detects motor/battery heat signatures
+  // EO channel (Allied Vision Alvium 1800) detects visual contrast
+  // YOLO runs both feeds at 30fps — confidence scales with target pixel area
+  let b=60;
+  const w=d.w;
+  // Thermal + visual signature scales with platform size
+  if(w<=150)b=35;else if(w<=250)b=42;else if(w<=500)b=50;else if(w<=1000)b=58;
+  else if(w<=2000)b=65;else if(w<=5000)b=75;else if(w<=10000)b=85;else b=92;
+  // YOLO confidence bonus: larger targets fill more pixels
+  if(w>=5000)b+=5;
+  // Thermal channel works day AND night — no degradation at night
+  // (unlike FPV pilots who lose visual in darkness)
+  // Fast targets reduce tracking window but AI handles better than human
+  if(d.s>35)b-=6;else if(d.s>25)b-=3;
+  // VTOL in cruise: smaller thermal cross-section
+  if(d.p==="VTOL")b-=6;
+  // External radar cueing gives initial track — Wolf flies to the area
+  // and then AI seeker acquires autonomously. Cueing assumed available.
+  if(mo.terrainMask)b-=10;
+  if(mo.swarm)b-=12; // AI can track one at a time, less degraded than human
+  return cl(b);
+}
+
+function wolfStrike(d,mo){
+  // AI-guided proportional navigation terminal strike
+  // Much more precise than FPV manual aim — PN guidance computes lead angle
+  // and continuously adjusts flight path to impact point
+  let b=targetVulnerability(d);
+  // Speed closure: Wolf at 78 m/s vs target
+  const closure=78-d.s;
+  if(closure>50)b+=8;else if(closure>30)b+=5;else if(closure>10)b+=2;
+  else if(closure<0)b-=15;else if(closure<10)b-=6;
+  // 5g instantaneous / 3.5g sustained — moderate maneuverability
+  b+=4;
+  // AI PN guidance bonus — precision terminal correction that FPV pilots can't match
+  // Especially effective against small targets where human aim fails
+  b+=10;
+  // AI tracks through clutter better than human eye
+  if(d.w>=2000)b+=3;
+  if(mo.terrainMask)b-=8;
+  if(mo.swarm)b-=15;
+  return cl(b);
+}
+
 function analyzeInterceptors(d,mo){
   const det=fpvDetect(d,mo);
   const rS=reddiStrike(d,mo),sS=sicaStrike(d,mo),wS=waspStrike(d,mo);
   const rE=cl((det/100)*(rS/100)*100);
   const sE=cl((det/100)*(sS/100)*100);
   const wE=cl((det/100)*(wS/100)*100);
-  return{iFPV:det,iRStr:rS,iREff:rE,iRTier:effTier(rE),iSStr:sS,iSEff:sE,iSTier:effTier(sE),iWStr:wS,iWEff:wE,iWTier:effTier(wE)};
+  // Wolf uses AI seeker detection, not FPV pilot
+  const wlfD=wolfDetect(d,mo),wlfS=wolfStrike(d,mo);
+  const wlfE=cl((wlfD/100)*(wlfS/100)*100);
+  return{iFPV:det,iRStr:rS,iREff:rE,iRTier:effTier(rE),iSStr:sS,iSEff:sE,iSTier:effTier(sE),iWStr:wS,iWEff:wE,iWTier:effTier(wE),iWolfDet:wlfD,iWolfStr:wlfS,iWolfEff:wlfE,iWolfTier:effTier(wlfE)};
 }
 
 // ── Main Analysis ─────────────────────────────────────────────────────────────
@@ -379,6 +438,7 @@ export function generateBriefingHTML(data,mods,tod,scenarioName){
   const rT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>rT[d.iRTier].push(d));
   const siT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>siT[d.iSTier].push(d));
   const wT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>wT[d.iWTier].push(d));
+  const wolfT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>wolfT[d.iWolfTier].push(d));
   const todLabel=TOD_MODES[tod]?.label||"Day";const now=new Date().toISOString().split("T")[0];
 
   let html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shaw AFB cUAS Three-Way Comparison</title>
@@ -435,11 +495,17 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(wT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${wT[t].length}</div>`;});
   html+=`</div></div></div>`;
 
+  // Wolf Block 3 card (separate — AI seeker, not FPV pilot)
+  html+=`<div style="display:flex;gap:12px;margin:8px 0;flex-wrap:wrap">`;
+  html+=`<div class="sb" style="border-color:#b8960a"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#b8960a;margin:0 0 4px">Wolf Block 3 (Wolf Program) — $27,500</h3><div style="color:#666">AI seeker (EO/IR YOLO) · PN-guided strike · 175 mph · 5g/3.5g · Autonomous</div><div class="ts">`;
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(wolfT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${wolfT[t].length}</div>`;});
+  html+=`</div></div></div>`;
+
   // Comparative table for all ELEVATED+ across any system
   const elev=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>b.or-a.or);
   if(elev.length){
     html+=`<h2 style="color:#c30;border-color:#c30">CRITICAL PLATFORMS: EFFECTIVENESS BELOW 60% (${elev.length})</h2>`;
-    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th style="text-align:center;background:#002a22">REDDI</th><th style="text-align:center;background:#002a22">SICA</th><th style="text-align:center;background:#002a22">WASP</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
+    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th style="text-align:center;background:#002a22">REDDI</th><th style="text-align:center;background:#002a22">SICA</th><th style="text-align:center;background:#002a22">WASP</th><th style="text-align:center;background:#2a2200">WOLF</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
     elev.forEach(d=>{
       const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
       html+=`<tr><td style="font-weight:700">${d.n}</td><td>${d.proto}</td>`;
@@ -449,6 +515,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
       html+=`<td class="sc" style="color:${rc(d.iRTier)};font-size:10px">${d.iREff}%</td>`;
       html+=`<td class="sc" style="color:${rc(d.iSTier)};font-size:10px">${d.iSEff}%</td>`;
       html+=`<td class="sc" style="color:${rc(d.iWTier)};font-size:10px">${d.iWEff}%</td>`;
+      html+=`<td class="sc" style="color:${rc(d.iWolfTier)};font-size:10px">${d.iWolfEff}%</td>`;
       html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
       html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
     });
@@ -464,15 +531,19 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   const avgR=Math.round(data.reduce((a,d)=>a+d.iREff,0)/data.length);
   const avgS=Math.round(data.reduce((a,d)=>a+d.iSEff,0)/data.length);
   const avgW=Math.round(data.reduce((a,d)=>a+d.iWEff,0)/data.length);
+  const avgWolf=Math.round(data.reduce((a,d)=>a+d.iWolfEff,0)/data.length);
   const rCrit=data.filter(d=>d.iRTier==="CRITICAL").length;
   const sCrit=data.filter(d=>d.iSTier==="CRITICAL").length;
   const wCrit=data.filter(d=>d.iWTier==="CRITICAL").length;
+  const wolfCrit=data.filter(d=>d.iWolfTier==="CRITICAL").length;
   html+=`<h2 style="color:#00aa77;border-color:#00aa77">DRONESMOKE INTERCEPTOR ASSESSMENT (FPV PILOT OPERATED)</h2>`;
-  html+=`<div class="assess">All three DRONESMOKE interceptors are FPV-pilot-operated platforms that defeat targets by physically striking vulnerable components (propellers, motor arms, antennas, control surfaces) at high speed. They operate independently of the SV-1 sensor network. Their effectiveness depends on two factors: the FPV pilot's ability to visually acquire the target, and the probability of a successful physical strike on exposed components during a high-speed pass. REDDI achieves ${avgR}% average effectiveness at 283 mph, the fastest closure speed of the three, which gives targets zero evasion window but limits the pilot's terminal correction time, placing ${rCrit} platforms in the CRITICAL tier. SICA achieves ${avgS}% average effectiveness at 170 mph with 10G maneuvering, which gives the pilot the best terminal tracking for fine adjustments against small or agile targets, placing ${sCrit} platforms in the CRITICAL tier. WASP achieves ${avgW}% average effectiveness at 200 mph with 5G maneuvering, a middle ground between REDDI's speed and SICA's agility, placing ${wCrit} platforms in the CRITICAL tier. All three interceptors share the same detection bottleneck: FPV pilot visual acquisition degrades sharply against sub-250g platforms, which have minimal visual signature at engagement ranges. Against large platforms (5kg+) with multiple exposed propellers and wide motor arms, all three achieve high strike probability because the vulnerable surface area is large and slow-moving. The interceptors are protocol-independent and complement the SV-1 electronic attack layer by providing a physical defeat mechanism that works regardless of the target's communication link, encryption, or autonomous navigation capability.</div>`;
+  html+=`<div class="assess">REDDI, SICA, and WASP are FPV-pilot-operated platforms that defeat targets by physically striking vulnerable components (propellers, motor arms, antennas, control surfaces) at high speed. They operate independently of the SV-1 sensor network. Their effectiveness depends on two factors: the FPV pilot's ability to visually acquire the target, and the probability of a successful physical strike on exposed components during a high-speed pass. REDDI achieves ${avgR}% average effectiveness at 283 mph, the fastest closure speed of the three, which gives targets zero evasion window but limits the pilot's terminal correction time, placing ${rCrit} platforms in the CRITICAL tier. SICA achieves ${avgS}% average effectiveness at 170 mph with 10G maneuvering, which gives the pilot the best terminal tracking for fine adjustments against small or agile targets, placing ${sCrit} platforms in the CRITICAL tier. WASP achieves ${avgW}% average effectiveness at 200 mph with 5G maneuvering, a middle ground between REDDI's speed and SICA's agility, placing ${wCrit} platforms in the CRITICAL tier. All three share the same detection bottleneck: FPV pilot visual acquisition degrades sharply against sub-250g platforms, which have minimal visual signature at engagement ranges.</div>`;
+  html+=`<h2 style="color:#b8960a;border-color:#b8960a">WOLF BLOCK 3 ASSESSMENT (AI SEEKER · AUTONOMOUS)</h2>`;
+  html+=`<div class="assess">Wolf Block 3 operates on a fundamentally different model from the three FPV-pilot interceptors. Wolf uses a dual EO/IR AI seeker (Allied Vision Alvium 1800 EO + FLIR Boson 640 LWIR running YOLO at 30 fps on a Jetson Orin Nano) for autonomous target acquisition, and proportional navigation for terminal guidance. External radar cueing via ASTERIX, STANAG, MAVLink, JSON, or CoT provides the initial track, after which Wolf's onboard AI handles acquisition, tracking, and strike autonomously. Wolf achieves ${avgWolf}% average effectiveness across all ${data.length} platforms and places ${wolfCrit} in the CRITICAL tier. The AI seeker eliminates the FPV pilot visual detection bottleneck that limits REDDI, SICA, and WASP: the thermal channel detects motor and battery heat signatures regardless of ambient lighting, and the YOLO classifier maintains confidence against small targets that human pilots cannot visually acquire at engagement range. The PN terminal guidance provides precision strike corrections that exceed manual FPV aim, particularly against small or agile targets where the pilot's reaction time is the limiting factor. Wolf's 175 mph sprint speed provides positive closure against all Group 1 sUAS, commercial drones, and FPV attack drones in any pursuit geometry. Against the hardest targets in the database (sub-250g consumer drones), Wolf's AI seeker still scores higher detection than FPV pilot visual because the thermal channel picks up motor heat that the human eye cannot resolve at distance.</div>`;
 
   // Full table
   html+=`<h2 style="color:#333;border-color:#333">ALL ${data.length} PLATFORMS</h2>`;
-  html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>REDDI</th><th>SICA</th><th>WASP</th><th>Δ S</th><th>Δ N</th></tr>`;
+  html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>REDDI</th><th>SICA</th><th>WASP</th><th>WOLF</th><th>Δ S</th><th>Δ N</th></tr>`;
   [...data].sort((a,b)=>b.or-a.or).forEach(d=>{
     const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
     html+=`<tr><td>${d.n}</td><td>${d.proto}</td>`;
@@ -482,6 +553,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
     html+=`<td class="sc" style="color:${rc(d.iRTier)}">${d.iREff}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.iSTier)}">${d.iSEff}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.iWTier)}">${d.iWEff}%</td>`;
+    html+=`<td class="sc" style="color:${rc(d.iWolfTier)}">${d.iWolfEff}%</td>`;
     html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
     html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
   });
