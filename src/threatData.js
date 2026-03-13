@@ -338,6 +338,9 @@ export function generateBriefingHTML(data,mods,tod,scenarioName){
   const tiers={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>tiers[d.rt].push(d));
   const nT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>nT[d.nTier].push(d));
   const sT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>sT[d.sTier].push(d));
+  const rT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>rT[d.iRTier].push(d));
+  const siT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>siT[d.iSTier].push(d));
+  const wT={CRITICAL:[],ELEVATED:[],LOW:[]};data.forEach(d=>wT[d.iWTier].push(d));
   const todLabel=TOD_MODES[tod]?.label||"Day";const now=new Date().toISOString().split("T")[0];
 
   let html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shaw AFB cUAS Three-Way Comparison</title>
@@ -382,17 +385,32 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(nT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${nT[t].length}</div>`;});
   html+=`</div></div></div>`;
 
+  // Interceptor cards
+  html+=`<div style="display:flex;gap:12px;margin:8px 0;flex-wrap:wrap">`;
+  html+=`<div class="sb" style="border-color:#00cc88"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00cc88;margin:0 0 4px">REDDI (MITRE) — $800</h3><div style="color:#666">Gnat analog EW jammer · 283 mph · SV-1 cued</div><div class="ts">`;
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(rT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${rT[t].length}</div>`;});
+  html+=`</div></div>`;
+  html+=`<div class="sb" style="border-color:#00aa77"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#00aa77;margin:0 0 4px">SICA (Lincoln Lab) — $1,500</h3><div style="color:#666">Kinetic intercept · 170 mph · 10G · SV-1 cued</div><div class="ts">`;
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(siT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${siT[t].length}</div>`;});
+  html+=`</div></div>`;
+  html+=`<div class="sb" style="border-color:#009966"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#009966;margin:0 0 4px">WASP (Titan Dynamics) — $8,000</h3><div style="color:#666">Kinetic intercept · 200 mph · 5G · SV-1 cued</div><div class="ts">`;
+  ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(wT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${wT[t].length}</div>`;});
+  html+=`</div></div></div>`;
+
   // Comparative table for all ELEVATED+ across any system
   const elev=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>b.or-a.or);
   if(elev.length){
     html+=`<h2 style="color:#c30;border-color:#c30">CRITICAL PLATFORMS: EFFECTIVENESS BELOW 60% (${elev.length})</h2>`;
-    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
+    html+=`<table><tr><th>PLATFORM</th><th>PROTOCOL</th><th style="text-align:center;background:#002208">SV-1</th><th style="text-align:center;background:#002208">TIER</th><th style="text-align:center;background:#0a1a33">SUADS</th><th style="text-align:center;background:#0a1a33">TIER</th><th style="text-align:center;background:#221100">NINJA</th><th style="text-align:center;background:#221100">TIER</th><th style="text-align:center;background:#002a22">REDDI</th><th style="text-align:center;background:#002a22">SICA</th><th style="text-align:center;background:#002a22">WASP</th><th>SUADS vs SV-1</th><th>NINJA vs SV-1</th></tr>`;
     elev.forEach(d=>{
       const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
       html+=`<tr><td style="font-weight:700">${d.n}</td><td>${d.proto}</td>`;
       html+=`<td class="sc" style="color:${rc(d.rt)};font-size:10px">${d.or}%</td><td class="sc" style="color:${rc(d.rt)}">${d.rt}</td>`;
       html+=`<td class="sc" style="color:${rc(d.sTier)};font-size:10px">${d.sRisk}%</td><td class="sc" style="color:${rc(d.sTier)}">${d.sTier}</td>`;
       html+=`<td class="sc" style="color:${rc(d.nTier)};font-size:10px">${d.nRisk}%</td><td class="sc" style="color:${rc(d.nTier)}">${d.nTier}</td>`;
+      html+=`<td class="sc" style="color:${rc(d.iRTier)};font-size:10px">${d.iREff}%</td>`;
+      html+=`<td class="sc" style="color:${rc(d.iSTier)};font-size:10px">${d.iSEff}%</td>`;
+      html+=`<td class="sc" style="color:${rc(d.iWTier)};font-size:10px">${d.iWEff}%</td>`;
       html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
       html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
     });
@@ -404,15 +422,28 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   html+=`<h2 style="color:#333;border-color:#333">COMPARATIVE ASSESSMENT</h2>`;
   html+=`<div class="assess">${generateAssessment(data)}</div>`;
 
+  // Interceptor assessment
+  const avgR=Math.round(data.reduce((a,d)=>a+d.iREff,0)/data.length);
+  const avgS=Math.round(data.reduce((a,d)=>a+d.iSEff,0)/data.length);
+  const avgW=Math.round(data.reduce((a,d)=>a+d.iWEff,0)/data.length);
+  const rCrit=data.filter(d=>d.iRTier==="CRITICAL").length;
+  const sCrit=data.filter(d=>d.iSTier==="CRITICAL").length;
+  const wCrit=data.filter(d=>d.iWTier==="CRITICAL").length;
+  html+=`<h2 style="color:#00aa77;border-color:#00aa77">DRONESMOKE INTERCEPTOR ASSESSMENT (SV-1 CUED)</h2>`;
+  html+=`<div class="assess">All three DRONESMOKE interceptors depend on SV-1 sensor cueing for target acquisition, so their effectiveness cannot exceed SV-1 detection probability for any given platform. REDDI achieves ${avgR}% average effectiveness using the Gnat analog EW jammer at close range, which works well against consumer protocols (WiFi, Lightbridge, OcuSync) but places ${rCrit} platforms in the CRITICAL tier because encrypted autonomous links like SkyLink, Skydio Link, Microhard, and custom ISM radios with cellular backup resist analog jamming. SICA achieves ${avgS}% average effectiveness through kinetic intercept at 170 mph with 10G maneuvering, placing ${sCrit} platforms in the CRITICAL tier primarily because sub-250g targets present an extremely small kinetic kill window. WASP achieves ${avgW}% average effectiveness through kinetic intercept at 200 mph but with only 5G maneuvering capability, placing ${wCrit} platforms in the CRITICAL tier. SICA and WASP are protocol-independent and defeat platforms that REDDI cannot touch, while REDDI offers a reusable non-kinetic option against consumer drones that preserves the interceptor for multiple engagements. The three interceptors complement the SV-1 electronic attack layer by providing a physical defeat mechanism against platforms that resist protocol injection, jamming, and GPS spoofing.</div>`;
+
   // Full table
   html+=`<h2 style="color:#333;border-color:#333">ALL ${data.length} PLATFORMS</h2>`;
-  html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>Δ S</th><th>Δ N</th></tr>`;
+  html+=`<table><tr><th>PLATFORM</th><th>PROTO</th><th>SV-1</th><th>SUADS</th><th>NINJA</th><th>REDDI</th><th>SICA</th><th>WASP</th><th>Δ S</th><th>Δ N</th></tr>`;
   [...data].sort((a,b)=>b.or-a.or).forEach(d=>{
     const ds=d.sRisk-d.or;const dn=d.nRisk-d.or;
     html+=`<tr><td>${d.n}</td><td>${d.proto}</td>`;
     html+=`<td class="sc" style="color:${rc(d.rt)}">${d.or}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.sTier)}">${d.sRisk}%</td>`;
     html+=`<td class="sc" style="color:${rc(d.nTier)}">${d.nRisk}%</td>`;
+    html+=`<td class="sc" style="color:${rc(d.iRTier)}">${d.iREff}%</td>`;
+    html+=`<td class="sc" style="color:${rc(d.iSTier)}">${d.iSEff}%</td>`;
+    html+=`<td class="sc" style="color:${rc(d.iWTier)}">${d.iWEff}%</td>`;
     html+=`<td class="sc ${ds<0?"dn":"dp"}">${ds>0?"+":""}${ds}%</td>`;
     html+=`<td class="sc ${dn<0?"dn":"dp"}">${dn>0?"+":""}${dn}%</td></tr>`;
   });
