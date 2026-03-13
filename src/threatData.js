@@ -669,3 +669,251 @@ export function generateCAPE(data){
 
   return{systems,optimal:{label:"SV-1 (2x) + REDDI (1x) + SICA (1x)",cost:optCost,eff:combinedEff,rationale:optRationale}};
 }
+
+// ── PPTX Export (PptxGenJS loaded from CDN) ───────────────────────────────────
+let pptxLoaded=false;
+function loadPptxGenJS(){
+  if(pptxLoaded)return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/gh/gitbrent/PptxGenJS@3.12.0/dist/pptxgen.bundle.js";
+    s.onload=()=>{pptxLoaded=true;res();};
+    s.onerror=()=>rej(new Error("Failed to load PptxGenJS"));
+    document.head.appendChild(s);
+  });
+}
+
+export async function generatePPTX(data,mods,tod,scenarioName,theme="dark"){
+  await loadPptxGenJS();
+  const pptxgen=window.PptxGenJS;
+  const pres=new pptxgen();
+  pres.layout="LAYOUT_16x9";
+  pres.author="Shaw AFB C-UAS SV-1";
+  pres.title="Shaw AFB C-UAS Effectiveness Comparison";
+
+  const dk=theme==="dark";
+  const bg=dk?"060A10":"FFFFFF";
+  const fg=dk?"E4ECF4":"111111";
+  const fg2=dk?"8898A8":"666666";
+  const accent=dk?"00FF88":"00AA44";
+  const hdrBg=dk?"0A0E14":"F0F2F5";
+  const cardBg=dk?"0E1420":"F8F9FA";
+  const border=dk?"1A3A2A":"DDDDDD";
+  const tierC={CRITICAL:dk?"FF4444":"CC0000",ELEVATED:dk?"FF9900":"CC8800",LOW:dk?"00CC66":"008800"};
+  const sysC={sv1:dk?"00FF88":"00AA44",ninja:dk?"FF6644":"CC4422",suads:dk?"4488FF":"2255CC",reddi:dk?"00DDAA":"008866",sica:dk?"44CCAA":"228866",wolf:dk?"DDAA22":"AA8800"};
+  const hFont="Calibri";const bFont="Calibri";
+  const now=new Date().toISOString().split("T")[0];
+  const todLabel=TOD_MODES[tod]?.label||"Day";
+  const cape=generateCAPE(data);
+
+  function addFooter(slide){
+    slide.addText("UNCLASSIFIED // FOUO",{x:0.5,y:5.15,w:4,h:0.3,fontSize:7,color:fg2,fontFace:bFont});
+    slide.addText(`Shaw AFB C-UAS · ${now} · ${data.length} Platforms`,{x:5,y:5.15,w:4.5,h:0.3,fontSize:7,color:fg2,fontFace:bFont,align:"right"});
+  }
+
+  // ── Slide 1: Title ──────────────────────────────────────────────────────
+  const s1=pres.addSlide();
+  s1.background={color:bg};
+  s1.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:2.2,fill:{color:dk?"0E1520":"E8EDF2"}});
+  s1.addText("SHAW AFB C-UAS",{x:0.6,y:0.4,w:8,h:0.5,fontSize:14,color:accent,fontFace:hFont,charSpacing:6,bold:true});
+  s1.addText("SV-1 vs RD-SUADS vs NINJA\nEFFECTIVENESS COMPARISON",{x:0.6,y:0.9,w:8,h:1,fontSize:28,color:fg,fontFace:hFont,bold:true,lineSpacingMultiple:1.1});
+  s1.addText(`Shaw AFB, Sumter SC · 20th Fighter Wing · DoDAF SV-1\n${todLabel} · ${data.length} Platforms · ${now}`,{x:0.6,y:2.5,w:8,h:0.8,fontSize:12,color:fg2,fontFace:bFont,lineSpacingMultiple:1.3});
+  if(scenarioName)s1.addText(`SCENARIO: ${scenarioName.toUpperCase()}`,{x:0.6,y:3.4,w:5,h:0.4,fontSize:11,color:accent,fontFace:hFont,bold:true,charSpacing:3});
+  s1.addText("$1,643,758 TOTAL SYSTEM",{x:0.6,y:4.2,w:4,h:0.4,fontSize:16,color:fg,fontFace:hFont,bold:true});
+  addFooter(s1);
+
+  // ── Slide 2: System Overview ────────────────────────────────────────────
+  const s2=pres.addSlide();
+  s2.background={color:bg};
+  s2.addText("SYSTEM OVERVIEW",{x:0.5,y:0.3,w:9,h:0.5,fontSize:22,color:fg,fontFace:hFont,bold:true});
+
+  const sysData=[
+    {id:"sv1",label:"SV-1 MULTI-MODAL",sub:"4 detect · 3 defeat · 40 nodes",cost:"$1.64M",key:"rt"},
+    {id:"suads",label:"RD-SUADS",sub:"1 detect (RF) · 2 defeat (C2+GNSS)",cost:"$2.00M",key:"sTier"},
+    {id:"ninja",label:"NINJA Gen2",sub:"1 detect (RF) · 1 defeat (Protocol)",cost:"$2.00M",key:"nTier"},
+  ];
+  sysData.forEach((sys,i)=>{
+    const x=0.5+i*3.1;const y=1.0;
+    const tc={CRITICAL:0,ELEVATED:0,LOW:0};data.forEach(d=>tc[d[sys.key]]++);
+    s2.addShape(pres.shapes.RECTANGLE,{x,y,w:2.9,h:1.8,fill:{color:cardBg},line:{color:sysC[sys.id],width:1.5}});
+    s2.addText(sys.label,{x:x+0.15,y:y+0.1,w:2.6,h:0.35,fontSize:10,color:sysC[sys.id],fontFace:hFont,bold:true,charSpacing:1});
+    s2.addText(sys.sub,{x:x+0.15,y:y+0.45,w:2.6,h:0.3,fontSize:8,color:fg2,fontFace:bFont});
+    s2.addText(sys.cost,{x:x+0.15,y:y+0.75,w:2.6,h:0.35,fontSize:14,color:fg,fontFace:hFont,bold:true});
+    s2.addText(`C:${tc.CRITICAL}  E:${tc.ELEVATED}  L:${tc.LOW}`,{x:x+0.15,y:y+1.2,w:2.6,h:0.3,fontSize:9,color:fg2,fontFace:bFont});
+  });
+
+  const intData=[
+    {id:"reddi",label:"REDDI",sub:"FPV · 283 mph · $800",key:"iRTier"},
+    {id:"sica",label:"SICA",sub:"FPV · 170 mph · 10G · $1,500",key:"iSTier"},
+    {id:"wolf",label:"WOLF BLOCK 3",sub:"AI seeker · 175 mph · $27,500",key:"iWolfTier"},
+  ];
+  intData.forEach((sys,i)=>{
+    const x=0.5+i*3.1;const y=3.1;
+    const tc={CRITICAL:0,ELEVATED:0,LOW:0};data.forEach(d=>tc[d[sys.key]]++);
+    s2.addShape(pres.shapes.RECTANGLE,{x,y,w:2.9,h:1.5,fill:{color:cardBg},line:{color:sysC[sys.id],width:1}});
+    s2.addText(sys.label,{x:x+0.15,y:y+0.1,w:2.6,h:0.3,fontSize:10,color:sysC[sys.id],fontFace:hFont,bold:true});
+    s2.addText(sys.sub,{x:x+0.15,y:y+0.4,w:2.6,h:0.25,fontSize:8,color:fg2,fontFace:bFont});
+    s2.addText(`C:${tc.CRITICAL}  E:${tc.ELEVATED}  L:${tc.LOW}`,{x:x+0.15,y:y+0.85,w:2.6,h:0.3,fontSize:9,color:fg2,fontFace:bFont});
+  });
+  addFooter(s2);
+
+  // ── Slide 3-4: Critical Platforms Table ─────────────────────────────────
+  const critical=data.filter(d=>d.or<=60||d.sRisk<=60||d.nRisk<=60).sort((a,b)=>b.or-a.or);
+  const critPages=[];
+  for(let i=0;i<critical.length;i+=18)critPages.push(critical.slice(i,i+18));
+
+  critPages.forEach((page,pi)=>{
+    const s=pres.addSlide();
+    s.background={color:bg};
+    s.addText(`CRITICAL PLATFORMS${pi>0?` (cont. ${pi+1})`:""}`,{x:0.5,y:0.2,w:9,h:0.4,fontSize:18,color:fg,fontFace:hFont,bold:true});
+
+    const hdr=[
+      [{text:"PLATFORM",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:7,fontFace:bFont}},
+       {text:"SV-1",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002208"},fontSize:7,align:"center",fontFace:bFont}},
+       {text:"SUADS",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"0A1A33"},fontSize:7,align:"center",fontFace:bFont}},
+       {text:"NINJA",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"221100"},fontSize:7,align:"center",fontFace:bFont}},
+       {text:"REDDI",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002A22"},fontSize:7,align:"center",fontFace:bFont}},
+       {text:"SICA",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002A22"},fontSize:7,align:"center",fontFace:bFont}},
+       {text:"WOLF",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"2A2200"},fontSize:7,align:"center",fontFace:bFont}}]
+    ];
+    const rows=page.map(d=>[
+      {text:d.n,options:{fontSize:7,color:fg,fontFace:bFont}},
+      {text:`${d.or}%`,options:{fontSize:8,bold:true,color:tierC[d.rt],align:"center",fontFace:bFont}},
+      {text:`${d.sRisk}%`,options:{fontSize:8,bold:true,color:tierC[d.sTier],align:"center",fontFace:bFont}},
+      {text:`${d.nRisk}%`,options:{fontSize:8,bold:true,color:tierC[d.nTier],align:"center",fontFace:bFont}},
+      {text:`${d.iREff}%`,options:{fontSize:7,color:tierC[d.iRTier],align:"center",fontFace:bFont}},
+      {text:`${d.iSEff}%`,options:{fontSize:7,color:tierC[d.iSTier],align:"center",fontFace:bFont}},
+      {text:`${d.iWolfEff}%`,options:{fontSize:7,color:tierC[d.iWolfTier],align:"center",fontFace:bFont}},
+    ]);
+    s.addTable([...hdr,...rows],{x:0.4,y:0.7,w:9.2,colW:[2.6,0.9,0.9,0.9,0.8,0.8,0.8],border:{pt:0.5,color:border},rowH:0.25});
+    addFooter(s);
+  });
+
+  // ── Slide 5: Comparative Assessment ─────────────────────────────────────
+  const s5=pres.addSlide();
+  s5.background={color:bg};
+  s5.addText("COMPARATIVE ASSESSMENT",{x:0.5,y:0.3,w:9,h:0.5,fontSize:22,color:fg,fontFace:hFont,bold:true});
+
+  const avgSV1=Math.round(data.reduce((a,d)=>a+d.or,0)/data.length);
+  const avgNinja=Math.round(data.reduce((a,d)=>a+d.nRisk,0)/data.length);
+  const avgSuads=Math.round(data.reduce((a,d)=>a+d.sRisk,0)/data.length);
+
+  const stats=[
+    {label:"SV-1",val:`${avgSV1}%`,color:sysC.sv1,sub:"Avg Effectiveness"},
+    {label:"RD-SUADS",val:`${avgSuads}%`,color:sysC.suads,sub:`${avgSV1-avgSuads}% below SV-1`},
+    {label:"NINJA",val:`${avgNinja}%`,color:sysC.ninja,sub:`${avgSV1-avgNinja}% below SV-1`},
+  ];
+  stats.forEach((st,i)=>{
+    const x=0.5+i*3.1;
+    s5.addShape(pres.shapes.RECTANGLE,{x,y:1.0,w:2.9,h:1.4,fill:{color:cardBg},line:{color:st.color,width:1.5}});
+    s5.addText(st.label,{x:x+0.15,y:1.1,w:2.6,h:0.3,fontSize:10,color:st.color,fontFace:hFont,bold:true,charSpacing:1});
+    s5.addText(st.val,{x:x+0.15,y:1.35,w:2.6,h:0.6,fontSize:36,color:st.color,fontFace:hFont,bold:true});
+    s5.addText(st.sub,{x:x+0.15,y:2.0,w:2.6,h:0.25,fontSize:9,color:fg2,fontFace:bFont});
+  });
+
+  s5.addText("The SV-1 multi-modal architecture achieves the highest effectiveness by combining four detection phenomenologies with three defeat mechanisms. NINJA and SUADS both rely on RF-only detection, which creates fundamental capability gaps against non-DJI protocols that no amount of additional investment resolves.",{x:0.5,y:2.7,w:9,h:1.8,fontSize:10,color:fg2,fontFace:bFont,lineSpacingMultiple:1.5,valign:"top"});
+  addFooter(s5);
+
+  // ── Slide 6: Interceptor Assessment ─────────────────────────────────────
+  const s6=pres.addSlide();
+  s6.background={color:bg};
+  s6.addText("INTERCEPTOR ASSESSMENT",{x:0.5,y:0.3,w:9,h:0.5,fontSize:22,color:fg,fontFace:hFont,bold:true});
+
+  const avgR=Math.round(data.reduce((a,d)=>a+d.iREff,0)/data.length);
+  const avgSi=Math.round(data.reduce((a,d)=>a+d.iSEff,0)/data.length);
+  const avgWolf=Math.round(data.reduce((a,d)=>a+d.iWolfEff,0)/data.length);
+
+  const intStats=[
+    {label:"REDDI (FPV)",val:`${avgR}%`,color:sysC.reddi,sub:"283 mph · $800"},
+    {label:"SICA (FPV)",val:`${avgSi}%`,color:sysC.sica,sub:"170 mph · 10G · $1,500"},
+    {label:"WOLF (AI)",val:`${avgWolf}%`,color:sysC.wolf,sub:"175 mph · Autonomous · $27,500"},
+  ];
+  intStats.forEach((st,i)=>{
+    const x=0.5+i*3.1;
+    s6.addShape(pres.shapes.RECTANGLE,{x,y:1.0,w:2.9,h:1.4,fill:{color:cardBg},line:{color:st.color,width:1.5}});
+    s6.addText(st.label,{x:x+0.15,y:1.1,w:2.6,h:0.3,fontSize:10,color:st.color,fontFace:hFont,bold:true});
+    s6.addText(st.val,{x:x+0.15,y:1.35,w:2.6,h:0.6,fontSize:36,color:st.color,fontFace:hFont,bold:true});
+    s6.addText(st.sub,{x:x+0.15,y:2.0,w:2.6,h:0.25,fontSize:9,color:fg2,fontFace:bFont});
+  });
+
+  s6.addText("FPV-pilot interceptors (REDDI, SICA, WASP) share a visual detection bottleneck that degrades sharply against sub-250g targets. Wolf Block 3 eliminates this bottleneck with a dual EO/IR AI seeker running YOLO at 30 fps and proportional navigation terminal guidance, achieving higher effectiveness against small targets where human visual acquisition fails.",{x:0.5,y:2.7,w:9,h:1.8,fontSize:10,color:fg2,fontFace:bFont,lineSpacingMultiple:1.5,valign:"top"});
+  addFooter(s6);
+
+  // ── Slide 7: CAPE ───────────────────────────────────────────────────────
+  const s7=pres.addSlide();
+  s7.background={color:bg};
+  s7.addText("COST ASSESSMENT AND PROGRAM EVALUATION",{x:0.5,y:0.2,w:9,h:0.4,fontSize:18,color:fg,fontFace:hFont,bold:true});
+
+  // CAPE table
+  const capeHdr=[[
+    {text:"SYSTEM",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,fontFace:bFont}},
+    {text:"1x COST",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+    {text:"1x EFF",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+    {text:"2x COST",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+    {text:"2x EFF",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+    {text:"3x COST",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+    {text:"3x EFF",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:8,align:"center",fontFace:bFont}},
+  ]];
+  const capeRows=cape.systems.map(sys=>[
+    {text:sys.label,options:{fontSize:8,bold:true,color:sysC[sys.id]||fg,fontFace:bFont}},
+    {text:`$${(sys.baseCost/1e6).toFixed(2)}M`,options:{fontSize:8,color:fg,align:"center",fontFace:bFont}},
+    {text:`${sys.eff[0]}%`,options:{fontSize:9,bold:true,color:tierC[sys.eff[0]>=81?"LOW":sys.eff[0]>=61?"ELEVATED":"CRITICAL"],align:"center",fontFace:bFont}},
+    {text:`$${(sys.baseCost*2/1e6).toFixed(2)}M`,options:{fontSize:8,color:fg,align:"center",fontFace:bFont}},
+    {text:`${sys.eff[1]}%`,options:{fontSize:9,bold:true,color:tierC[sys.eff[1]>=81?"LOW":sys.eff[1]>=61?"ELEVATED":"CRITICAL"],align:"center",fontFace:bFont}},
+    {text:`$${(sys.baseCost*3/1e6).toFixed(2)}M`,options:{fontSize:8,color:fg,align:"center",fontFace:bFont}},
+    {text:`${sys.eff[2]}%`,options:{fontSize:9,bold:true,color:tierC[sys.eff[2]>=81?"LOW":sys.eff[2]>=61?"ELEVATED":"CRITICAL"],align:"center",fontFace:bFont}},
+  ]);
+  s7.addTable([...capeHdr,...capeRows],{x:0.4,y:0.7,w:9.2,colW:[2.4,1.1,0.8,1.1,0.8,1.1,0.8],border:{pt:0.5,color:border},rowH:0.3});
+
+  // Optimal recommendation box
+  s7.addShape(pres.shapes.RECTANGLE,{x:0.4,y:3.3,w:9.2,h:2.0,fill:{color:dk?"0A1A10":"E8FFE8"},line:{color:accent,width:2}});
+  s7.addText(`RECOMMENDED: ${cape.optimal.label}`,{x:0.6,y:3.4,w:8.8,h:0.4,fontSize:13,color:accent,fontFace:hFont,bold:true,charSpacing:1});
+  s7.addText([
+    {text:`Total: $${(cape.optimal.cost/1e6).toFixed(2)}M`,options:{fontSize:16,bold:true,color:fg,fontFace:hFont,breakLine:true}},
+    {text:`Combined Effectiveness: ${cape.optimal.eff}%  ·  Cost per 1%: $${Math.round(cape.optimal.cost/cape.optimal.eff).toLocaleString()}`,options:{fontSize:10,color:fg2,fontFace:bFont,breakLine:true}},
+  ],{x:0.6,y:3.8,w:8.8,h:0.7});
+  s7.addText(cape.optimal.rationale,{x:0.6,y:4.4,w:8.8,h:0.8,fontSize:8,color:fg2,fontFace:bFont,lineSpacingMultiple:1.3,valign:"top"});
+  addFooter(s7);
+
+  // ── Slides 8+: All Platforms ────────────────────────────────────────────
+  const sorted=[...data].sort((a,b)=>b.or-a.or);
+  const pages=[];
+  for(let i=0;i<sorted.length;i+=20)pages.push(sorted.slice(i,i+20));
+
+  pages.forEach((page,pi)=>{
+    const s=pres.addSlide();
+    s.background={color:bg};
+    s.addText(`ALL ${data.length} PLATFORMS${pi>0?` (${pi+1}/${pages.length})`:""}`,{x:0.5,y:0.15,w:9,h:0.35,fontSize:14,color:fg,fontFace:hFont,bold:true});
+
+    const hdr=[[
+      {text:"PLATFORM",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:6,fontFace:bFont}},
+      {text:"PROTO",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:hdrBg},fontSize:6,fontFace:bFont}},
+      {text:"SV-1",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002208"},fontSize:6,align:"center",fontFace:bFont}},
+      {text:"SUADS",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"0A1A33"},fontSize:6,align:"center",fontFace:bFont}},
+      {text:"NINJA",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"221100"},fontSize:6,align:"center",fontFace:bFont}},
+      {text:"REDDI",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002A22"},fontSize:6,align:"center",fontFace:bFont}},
+      {text:"SICA",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"002A22"},fontSize:6,align:"center",fontFace:bFont}},
+      {text:"WOLF",options:{bold:true,color:dk?"E4ECF4":"FFFFFF",fill:{color:"2A2200"},fontSize:6,align:"center",fontFace:bFont}},
+    ]];
+    const rows=page.map(d=>[
+      {text:d.n,options:{fontSize:6,color:fg,fontFace:bFont}},
+      {text:d.proto,options:{fontSize:5,color:fg2,fontFace:bFont}},
+      {text:`${d.or}%`,options:{fontSize:7,bold:true,color:tierC[d.rt],align:"center",fontFace:bFont}},
+      {text:`${d.sRisk}%`,options:{fontSize:7,color:tierC[d.sTier],align:"center",fontFace:bFont}},
+      {text:`${d.nRisk}%`,options:{fontSize:7,color:tierC[d.nTier],align:"center",fontFace:bFont}},
+      {text:`${d.iREff}%`,options:{fontSize:6,color:tierC[d.iRTier],align:"center",fontFace:bFont}},
+      {text:`${d.iSEff}%`,options:{fontSize:6,color:tierC[d.iSTier],align:"center",fontFace:bFont}},
+      {text:`${d.iWolfEff}%`,options:{fontSize:6,color:tierC[d.iWolfTier],align:"center",fontFace:bFont}},
+    ]);
+    s.addTable([...hdr,...rows],{x:0.3,y:0.55,w:9.4,colW:[2.2,1.2,0.8,0.8,0.8,0.7,0.7,0.7],border:{pt:0.3,color:border},rowH:0.23,autoPage:false});
+    addFooter(s);
+  });
+
+  const blob=await pres.write("blob");
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`Shaw_AFB_cUAS_${theme==="dark"?"Dark":"Light"}_${now}.pptx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
