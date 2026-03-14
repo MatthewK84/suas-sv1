@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { analyzeDrones, analyzeDrone, HARDENED_MODS, TOD_MODES, serializeScenario, deserializeScenario, generateBriefingHTML, generateCAPE, generatePPTX, EXTRACTION_PROMPT, validateExtracted, loadCustomDrones, saveCustomDrones, loadApiKey, saveApiKey } from "./threatData";
+import { analyzeDrones, analyzeDrone, HARDENED_MODS, TOD_MODES, serializeScenario, deserializeScenario, generateBriefingHTML, generateCAPE, generatePPTX, EXTRACTION_PROMPT, validateExtracted, loadCustomDrones, saveCustomDrones, loadApiKey, saveApiKey, getDCInfo } from "./threatData";
 
 const TC={CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"};
 const TB={CRITICAL:"rgba(60,0,0,0.6)",ELEVATED:"rgba(60,42,0,0.5)",LOW:"rgba(13,40,24,0.4)"};
@@ -9,9 +9,53 @@ function ScoreCell({v}){const c=v>=80?"#00cc66":v>=60?"#88cc00":v>=40?"#cccc00":
 
 function SysBlock({label,color,risk,tier,det,def,mobile}){return<div style={{padding:mobile?10:8,background:TB[tier],border:`1px solid ${TC[tier]}33`,borderRadius:6,textAlign:"center",flex:1,minWidth:mobile?80:60}}><div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?7:6,color,letterSpacing:1,marginBottom:2}}>{label}</div><div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?22:18,fontWeight:700,color:TC[tier]}}>{risk}%</div><div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,fontWeight:700,color:TC[tier],letterSpacing:2}}>{tier}</div>{det!==undefined&&<div style={{fontSize:mobile?8:7,color:"#607080",marginTop:3}}>D:{det}% F:{def}%</div>}</div>;}
 
-function ThreatCard({d,onTap,isSel,showCompare}){return<div onClick={()=>onTap(d)} style={{padding:"12px 14px",background:isSel?"rgba(0,255,120,0.08)":"rgba(255,255,255,0.02)",border:`1px solid ${isSel?"rgba(0,255,120,0.3)":"rgba(255,255,255,0.04)"}`,borderRadius:8,marginBottom:8,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+// ── DroneCompare Info Card ────────────────────────────────────────────────────
+function DCInfoCard({d,mobile,style}){
+  const dc=getDCInfo(d.n);
+  if(!dc)return null;
+  const [imgOk,setImgOk]=useState(true);
+  return<div style={{background:"rgba(10,16,24,0.95)",border:"1px solid rgba(0,255,120,0.2)",borderRadius:8,overflow:"hidden",...style}}>
+    {imgOk&&<div style={{background:"#111820",padding:"8px 0",textAlign:"center",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+      <img src={mobile?dc.imgLg:dc.img} alt={d.n} onError={()=>setImgOk(false)} style={{maxWidth:"100%",height:"auto",maxHeight:mobile?140:90,objectFit:"contain"}}/>
+    </div>}
+    <div style={{padding:mobile?"10px 12px":"6px 10px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:mobile?6:3,fontSize:mobile?10:8}}>
+        {[["Weight",(d.w/1000).toFixed(1)+"kg"],["Speed",d.s+"m/s"],["Flight",d.ft+"min"],["Protocol",d.proto],["Platform",d.p],["Price",d.pr?"$"+d.pr.toLocaleString():"N/A"]].map(([k,v],i)=>
+          <div key={i} style={{display:"flex",justifyContent:"space-between",gap:4,padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+            <span style={{color:"#506070"}}>{k}</span><span style={{color:"#b8c4d0",fontWeight:600,fontFamily:"'IBM Plex Mono',monospace"}}>{v}</span>
+          </div>)}
+      </div>
+      <a href={dc.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{display:"block",marginTop:mobile?8:5,padding:mobile?"8px 0":"4px 0",textAlign:"center",fontSize:mobile?10:7.5,color:"#00ff88",textDecoration:"none",border:"1px solid rgba(0,255,120,0.2)",borderRadius:4,fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600}}>VIEW ON DRONECOMPARE ↗</a>
+      <div style={{fontSize:mobile?7:6,color:"#304050",textAlign:"center",marginTop:3}}>Data: DroneCompare (CC-BY-4.0)</div>
+    </div>
+  </div>;
+}
+
+// ── Hover Popup Wrapper (desktop only) ────────────────────────────────────────
+function DCHoverWrap({d,children}){
+  const [show,setShow]=useState(false);
+  const [pos,setPos]=useState({x:0,y:0});
+  const ref=useRef(null);
+  const dc=getDCInfo(d.n);
+  if(!dc)return children;
+  const onEnter=()=>{
+    if(ref.current){
+      const r=ref.current.getBoundingClientRect();
+      setPos({x:r.left,y:r.bottom+4});
+    }
+    setShow(true);
+  };
+  return<div ref={ref} onMouseEnter={onEnter} onMouseLeave={()=>setShow(false)} style={{display:"inline",cursor:"pointer",position:"relative"}}>
+    {children}<span style={{fontSize:8,color:"#00ff88",marginLeft:4,opacity:0.5,verticalAlign:"middle"}}>ℹ</span>
+    {show&&<div style={{position:"fixed",left:Math.min(pos.x,window.innerWidth-260),top:pos.y,width:240,zIndex:100,pointerEvents:"auto"}} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
+      <DCInfoCard d={d}/>
+    </div>}
+  </div>;
+}
+
+function ThreatCard({d,onTap,isSel,showCompare,mobile}){return<div onClick={()=>onTap(d)} style={{padding:"12px 14px",background:isSel?"rgba(0,255,120,0.08)":"rgba(255,255,255,0.02)",border:`1px solid ${isSel?"rgba(0,255,120,0.3)":"rgba(255,255,255,0.04)"}`,borderRadius:8,marginBottom:8,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-    <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#e4ecf4",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.custom&&<span style={{fontSize:9,background:"rgba(100,100,255,0.2)",color:"#aaaaff",padding:"1px 5px",borderRadius:3,marginRight:6}}>C</span>}{d.n}</div><div style={{fontSize:10,color:"#607080",marginTop:2}}>{d.m} · {(d.w/1000).toFixed(1)}kg · {d.proto}</div></div>
+    <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#e4ecf4",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.custom&&<span style={{fontSize:9,background:"rgba(100,100,255,0.2)",color:"#aaaaff",padding:"1px 5px",borderRadius:3,marginRight:6}}>C</span>}{mobile?d.n:<DCHoverWrap d={d}>{d.n}</DCHoverWrap>}</div><div style={{fontSize:10,color:"#607080",marginTop:2}}>{d.m} · {(d.w/1000).toFixed(1)}kg · {d.proto}</div></div>
     {!showCompare&&<div style={{textAlign:"right"}}><div style={{fontSize:18,fontWeight:700,color:TC[d.rt],fontFamily:"'Oxanium',sans-serif"}}>{d.or}%</div><div style={{fontSize:9,fontWeight:700,color:TC[d.rt],background:TB[d.rt],padding:"2px 6px",borderRadius:3,letterSpacing:1,fontFamily:"'Oxanium',sans-serif"}}>{d.rt}</div></div>}
   </div>
   {showCompare&&<div style={{display:"flex",gap:6,marginBottom:8}}><SysBlock label="SV-1" color="#00cc66" risk={d.or} tier={d.rt} mobile/><SysBlock label="SUADS" color="#2266cc" risk={d.sRisk} tier={d.sTier} mobile/><SysBlock label="NINJA" color="#cc8800" risk={d.nRisk} tier={d.nTier} mobile/></div>}
@@ -24,6 +68,7 @@ function DetailContent({sel,mods,tod,onShowOnMap,onClose,onDelete,mobile}){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?9:8,color:sel.custom?"#aaaaff":"#00ff88",letterSpacing:3}}>{sel.custom?"CUSTOM THREAT":"THREAT PROFILE"}</div><h2 style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?18:14,color:"#e4ecf4",margin:"4px 0",fontWeight:700}}>{sel.n}</h2></div><button onClick={onClose} style={{background:"none",border:"none",color:"#506070",fontSize:mobile?24:16,cursor:"pointer",padding:8,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
     {onShowOnMap&&<button onClick={()=>onShowOnMap(sel)} style={{width:"100%",padding:"10px 0",marginBottom:8,borderRadius:6,border:"1px solid rgba(0,255,120,0.3)",background:"rgba(0,255,120,0.06)",color:"#00ff88",fontSize:mobile?12:10,fontFamily:"'Oxanium',sans-serif",fontWeight:700,letterSpacing:2,cursor:"pointer",minHeight:44}}>◎ SHOW ON MAP</button>}
     {sel.custom&&onDelete&&<button onClick={()=>{onDelete(sel.n);onClose();}} style={{width:"100%",padding:"8px 0",marginBottom:12,borderRadius:6,border:"1px solid rgba(255,60,60,0.3)",background:"rgba(255,60,60,0.06)",color:"#ff6666",fontSize:mobile?11:9,fontFamily:"'Oxanium',sans-serif",fontWeight:600,cursor:"pointer",minHeight:mobile?40:32}}>DELETE CUSTOM</button>}
+    <DCInfoCard d={sel} mobile={mobile} style={{marginBottom:10}}/>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,margin:"8px 0",fontSize:mobile?11:9}}>
       {[["Manufacturer",sel.m],["Category",sel.c],["Platform",sel.p],["Weight",(sel.w/1000).toFixed(1)+"kg"],["Protocol",sel.proto],["RTK",sel.rtk?"YES":"NO"],["Cellular",sel.cell?"YES":"NO"],["Encrypted",sel.enc?"YES":"NO"],["Autonomous",sel.auto?"YES":"NO"],["Waypoints",sel.wp?"YES":"NO"]].map(([k,v],i)=><div key={i} style={{padding:"5px 7px",background:"rgba(255,255,255,0.02)",borderRadius:4}}><div style={{color:"#405060",fontSize:mobile?8:7,letterSpacing:1,fontFamily:"'Oxanium',sans-serif"}}>{k.toUpperCase()}</div><div style={{color:"#b8c4d0",fontWeight:600,marginTop:1}}>{v}</div></div>)}
     </div>
@@ -149,7 +194,7 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
         {mobile?(
           <div style={{flex:1,overflow:"auto",padding:"8px 12px",WebkitOverflowScrolling:"touch"}}>
-            {filtered.map((d,i)=><ThreatCard key={d.n+i} d={d} onTap={dd=>setSel(sel&&sel.n===dd.n?null:dd)} isSel={sel&&sel.n===d.n} showCompare={showCompare}/>)}
+            {filtered.map((d,i)=><ThreatCard key={d.n+i} d={d} onTap={dd=>setSel(sel&&sel.n===dd.n?null:dd)} isSel={sel&&sel.n===d.n} showCompare={showCompare} mobile={mobile}/>)}
             {!filtered.length&&<div style={{textAlign:"center",padding:40,color:"#405060"}}>No match</div>}
           </div>
         ):(
