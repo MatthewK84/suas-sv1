@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ThreatMatrix, { CAPEView } from "./ThreatMatrix";
-import { getNodeEffectiveness } from "./threatData";
+import { getNodeEffectiveness, loadGmapKey, saveGmapKey } from "./threatData";
 
 function useFonts(){useEffect(()=>{const l=document.createElement("link");l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";l.rel="stylesheet";document.head.appendChild(l);return()=>document.head.removeChild(l);},[]);}
 function useMobile(bp=768){const[m,setM]=useState(typeof window!=="undefined"?window.innerWidth<bp:false);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[bp]);return m;}
@@ -29,6 +29,53 @@ export default function App(){
   const[act,setAct]=useState(null);const[pin,setPin]=useState(null);
   const[ly,setLy]=useState({rf:true,ea:true,rd:true,ac:true,eo:true,ms:!mobile,fc:true});
   const[showPanel,setShowPanel]=useState(false);
+  const[sat,setSat]=useState(false);const[gmapReady,setGmapReady]=useState(false);
+  const[gmapKey,setGmapKey]=useState(loadGmapKey);const[showGmapPrompt,setShowGmapPrompt]=useState(false);
+  const[gmapKeyInput,setGmapKeyInput]=useState("");
+  const gmapRef=useRef(null);const gmapInstance=useRef(null);
+
+  // Load Google Maps API when key is available and satellite toggled
+  useEffect(()=>{
+    if(!sat||!gmapKey||window.google?.maps)return;
+    if(document.querySelector('script[src*="maps.googleapis.com"]'))return;
+    const s=document.createElement("script");
+    s.src=`https://maps.googleapis.com/maps/api/js?key=${gmapKey}&callback=__gmapInit`;
+    s.async=true;s.defer=true;
+    window.__gmapInit=()=>{setGmapReady(true);delete window.__gmapInit;};
+    s.onerror=()=>{setSat(false);alert("Google Maps API failed to load. Check your API key.");};
+    document.head.appendChild(s);
+    return()=>{};
+  },[sat,gmapKey]);
+
+  // Mark ready if API was already loaded
+  useEffect(()=>{if(window.google?.maps)setGmapReady(true);},[]);
+
+  // Initialize or update map instance
+  useEffect(()=>{
+    if(!sat||!gmapReady||!gmapRef.current)return;
+    if(!gmapInstance.current){
+      gmapInstance.current=new window.google.maps.Map(gmapRef.current,{
+        center:{lat:33.974,lng:-80.474},
+        zoom:15,
+        mapTypeId:"satellite",
+        disableDefaultUI:true,
+        gestureHandling:"none",
+        tilt:0,
+        rotateControl:false,
+        keyboardShortcuts:false,
+      });
+    }
+  },[sat,gmapReady]);
+
+  const toggleSat=useCallback(()=>{
+    if(!sat&&!gmapKey){setShowGmapPrompt(true);return;}
+    setSat(s=>!s);
+  },[sat,gmapKey]);
+
+  const saveGmapKeyAndGo=()=>{
+    if(gmapKeyInput.trim()){saveGmapKey(gmapKeyInput.trim());setGmapKey(gmapKeyInput.trim());setShowGmapPrompt(false);setSat(true);}
+  };
+
   const cur=pin||act;const tip=cur?TIPS[cur.t]:null;
   const hv=(id,t)=>{if(!mobile)setAct({id,t});};const lv=()=>{if(!mobile)setAct(null);};
   const cl=(id,t)=>{setPin(pin&&pin.id===id?null:{id,t});if(mobile)setShowPanel(true);};
@@ -79,9 +126,11 @@ export default function App(){
           )}
           <div style={{display:"flex",flex:1,overflow:"hidden",flexDirection:mobile?"column":"row"}}>
             <div style={{flex:"1 1 0",padding:mobile?6:12,minWidth:0,overflow:mobile?"auto":"hidden",WebkitOverflowScrolling:"touch"}}>
-              <svg viewBox="0 0 1420 750" style={{width:mobile?"200%":"100%",minWidth:mobile?700:undefined,background:"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:"1px solid rgba(0,255,120,0.1)"}}>
+              <div style={{position:"relative",width:mobile?"200%":undefined,minWidth:mobile?700:undefined}}>
+                {sat&&gmapReady&&<div ref={gmapRef} style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:6,zIndex:0}}/>}
+              <svg viewBox="0 0 1420 750" style={{position:"relative",zIndex:1,width:"100%",background:sat&&gmapReady?"transparent":"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:`1px solid ${sat?"rgba(0,255,120,0.3)":"rgba(0,255,120,0.1)"}`}}>
                 <defs><radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,180,255,0.08)"/><stop offset="100%" stopColor="rgba(0,180,255,0)"/></radialGradient><radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,60,60,0.07)"/><stop offset="100%" stopColor="rgba(255,60,60,0)"/></radialGradient><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,204,102,0.08)"/><stop offset="100%" stopColor="rgba(0,204,102,0)"/></radialGradient><radialGradient id="ag" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(160,112,208,0.1)"/><stop offset="100%" stopColor="rgba(160,112,208,0)"/></radialGradient><filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,120,0.02)" strokeWidth="0.5"/></pattern></defs>
-                <rect width="1420" height="750" fill="url(#gr)"/>
+                <rect width="1420" height="750" fill={sat&&gmapReady?"rgba(0,0,0,0.35)":"url(#gr)"}/>
                 <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
                 <text x="125" y="148" fontSize="7" fill="rgba(0,255,120,0.45)" fontFamily="Oxanium,sans-serif" letterSpacing="2">INSTALLATION BOUNDARY</text>
                 <text x="460" y="52" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">MAIN CANTONMENT</text>
@@ -106,18 +155,39 @@ export default function App(){
                 <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
                 <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
               </svg>
+              </div>
             </div>
             {!mobile&&<div style={{flex:"0 0 310px",padding:"12px 16px 12px 4px",display:"flex",flexDirection:"column",gap:10,overflowY:"auto"}}>
-              <Blk t="LAYER CONTROLS">{[{k:"rf",l:"RF Sensor (2-3 km)",c:"#00b4ff"},{k:"ea",l:"EA Range (1.2 km)",c:"#ff3c3c"},{k:"rd",l:"Radar (1 km)",c:"#00cc66"},{k:"ac",l:"Acoustic (300-500m)",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=><label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}><div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}</div><span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span></label>)}</Blk>
+              <Blk t="LAYER CONTROLS">{[{k:"rf",l:"RF Sensor (2-3 km)",c:"#00b4ff"},{k:"ea",l:"EA Range (1.2 km)",c:"#ff3c3c"},{k:"rd",l:"Radar (1 km)",c:"#00cc66"},{k:"ac",l:"Acoustic (300-500m)",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=><label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}><div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}</div><span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span></label>)}
+                <div style={{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:6,marginTop:4}}>
+                  <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:10}}>
+                    <div onClick={toggleSat} style={{width:14,height:14,borderRadius:3,border:"2px solid #88aacc",background:sat?"rgba(136,170,204,0.3)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sat&&<div style={{width:6,height:6,borderRadius:2,background:"#88aacc"}}/>}</div>
+                    <span style={{color:sat?"#c8d0d8":"#506070"}}>Satellite (Google)</span>
+                  </label>
+                  {sat&&gmapKey&&<div style={{fontSize:7.5,color:"#405060",marginTop:3,marginLeft:24}}>Imagery: Google Maps</div>}
+                  {sat&&!gmapKey&&<div style={{fontSize:7.5,color:"#cc8800",marginTop:3,marginLeft:24}}>API key required</div>}
+                </div>
+              </Blk>
               <div style={{background:tip?`linear-gradient(135deg,${tip.color}08,${tip.color}03)`:"rgba(255,255,255,0.02)",border:`1px solid ${tip?tip.color+"40":"rgba(0,255,120,0.1)"}`,borderRadius:8,padding:13,transition:"all 0.3s",minHeight:tip?"auto":90}}>{tip?(<div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{fontSize:20,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div></div></div><div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div></div>):(<div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div></div>)}</div>
               <Blk t="SYSTEM INVENTORY">{[["◉","#00b4ff","RF Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes","10 (30 DF)"],["◆","#00cc66","Radars","30 (10 towers)"],["◎","#a070d0","Acoustic","24 (MEMS)"],["◐","#e0a030","EO/IR","12 (thermal)"],["■","#ffcc00","C2","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=><div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div><span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span></div>)}<div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span><span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span></div></Blk>
             </div>}
             {mobile&&tip&&showPanel&&(<div style={{position:"fixed",bottom:0,left:0,right:0,maxHeight:"60vh",overflow:"auto",background:"#0a0e14",borderTop:"2px solid "+tip.color,borderRadius:"16px 16px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.6)",zIndex:20,WebkitOverflowScrolling:"touch",padding:16}}><div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 12px"}}/><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:14,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:9,color:tip.color,letterSpacing:2,fontWeight:600}}>{tip.role}</div></div></div><button onClick={()=>{setShowPanel(false);setPin(null);}} style={{background:"none",border:"none",color:"#506070",fontSize:24,cursor:"pointer",padding:8,minWidth:44,minHeight:44}}>✕</button></div><div style={{fontSize:11,color:"#8898a8",lineHeight:1.55,margin:"10px 0"}}>{tip.what}</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:5,fontSize:10,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,margin:"10px 0 6px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:11}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:6,padding:"8px",fontSize:11,color:tip.color,textAlign:"center",fontWeight:600,marginTop:10}}>{tip.count}</div></div>)}
-            {mobile&&!showPanel&&(<div style={{position:"fixed",bottom:12,right:12,display:"flex",gap:6,zIndex:10}}>{[{k:"rf",c:"#00b4ff",l:"RF"},{k:"ea",c:"#ff3c3c",l:"EA"},{k:"rd",c:"#00cc66",l:"R"},{k:"ac",c:"#a070d0",l:"A"},{k:"eo",c:"#e0a030",l:"E"},{k:"fc",c:"#ffb428",l:"F"}].map(({k,c,l})=><button key={k} onClick={()=>tg(k)} style={{width:36,height:36,borderRadius:18,border:`2px solid ${c}`,background:ly[k]?`${c}30`:"rgba(6,10,16,0.9)",color:ly[k]?c:"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{l}</button>)}</div>)}
+            {mobile&&!showPanel&&(<div style={{position:"fixed",bottom:12,right:12,display:"flex",gap:6,zIndex:10}}>{[{k:"rf",c:"#00b4ff",l:"RF"},{k:"ea",c:"#ff3c3c",l:"EA"},{k:"rd",c:"#00cc66",l:"R"},{k:"ac",c:"#a070d0",l:"A"},{k:"eo",c:"#e0a030",l:"E"},{k:"fc",c:"#ffb428",l:"F"}].map(({k,c,l})=><button key={k} onClick={()=>tg(k)} style={{width:36,height:36,borderRadius:18,border:`2px solid ${c}`,background:ly[k]?`${c}30`:"rgba(6,10,16,0.9)",color:ly[k]?c:"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{l}</button>)}<button onClick={toggleSat} style={{width:36,height:36,borderRadius:18,border:"2px solid #88aacc",background:sat?"rgba(136,170,204,0.3)":"rgba(6,10,16,0.9)",color:sat?"#88aacc":"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>S</button></div>)}
           </div>
           {!mobile&&<footer style={{padding:"10px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:8,color:"#303a44",display:"flex",flexDirection:"column",gap:6,flexShrink:0}}><div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}><span>DoDAF SV-1 · SV-1 vs RD-SUADS vs NINJA</span><span>40 RF/EA · 120 DF · 30 radars · 24 acoustic · 12 EO/IR · 2 C2</span></div><div style={{padding:"6px 10px",background:"rgba(204,136,0,0.06)",border:"1px solid rgba(204,136,0,0.2)",borderRadius:4,color:"#8a7040",lineHeight:1.5,fontSize:7.5}}>⚠ DISCLAIMER: The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions. Radar model calibrated against AERIS-10 open-source X-band phased array radar specs (10.5 GHz PLFM, github.com/NawfalMotii79/PLFM_RADAR).</div></footer>}
         </div>
       )}
+      {showGmapPrompt&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowGmapPrompt(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"#0a0e14",border:"1px solid rgba(0,255,120,0.3)",borderRadius:12,padding:mobile?20:24,maxWidth:420,width:"100%"}}>
+          <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,color:"#00ff88",letterSpacing:3,marginBottom:12}}>GOOGLE MAPS API KEY</div>
+          <div style={{fontSize:mobile?11:10,color:"#8898a8",lineHeight:1.6,marginBottom:12}}>Satellite imagery requires a Google Maps JavaScript API key. Get one free at <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{color:"#00ff88"}}>console.cloud.google.com</a>. Enable the Maps JavaScript API for your project. Your key is stored locally and never sent anywhere except Google.</div>
+          <input value={gmapKeyInput} onChange={e=>setGmapKeyInput(e.target.value)} placeholder="AIza..." style={{width:"100%",padding:mobile?"12px":"10px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(0,255,120,0.2)",borderRadius:6,color:"#e4ecf4",fontSize:mobile?14:12,fontFamily:"'IBM Plex Mono',monospace",boxSizing:"border-box",outline:"none"}} onKeyDown={e=>e.key==="Enter"&&saveGmapKeyAndGo()}/>
+          <div style={{display:"flex",gap:8,marginTop:12}}>
+            <button onClick={saveGmapKeyAndGo} style={{flex:1,padding:mobile?"12px":"8px",borderRadius:6,border:"1px solid rgba(0,255,120,0.3)",background:"rgba(0,255,120,0.1)",color:"#00ff88",fontSize:mobile?12:10,fontFamily:"'Oxanium',sans-serif",fontWeight:700,letterSpacing:2,cursor:"pointer",minHeight:mobile?44:undefined}}>SAVE + ENABLE</button>
+            <button onClick={()=>setShowGmapPrompt(false)} style={{padding:mobile?"12px 16px":"8px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"#506070",fontSize:mobile?12:10,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",minHeight:mobile?44:undefined}}>CANCEL</button>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 }

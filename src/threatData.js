@@ -562,6 +562,9 @@ export function validateExtracted(raw){const d={...raw};d.n=d.n||"Unknown Platfo
 const KEY_STORAGE="shaw_cuas_api_key";
 export function loadApiKey(){try{return localStorage.getItem(KEY_STORAGE)||"";}catch(e){return"";}}
 export function saveApiKey(k){try{localStorage.setItem(KEY_STORAGE,k);}catch(e){}}
+const GMAP_KEY_STORAGE="shaw_cuas_gmap_key";
+export function loadGmapKey(){try{return localStorage.getItem(GMAP_KEY_STORAGE)||"";}catch(e){return"";}}
+export function saveGmapKey(k){try{localStorage.setItem(GMAP_KEY_STORAGE,k);}catch(e){}}
 
 // ── Briefing with Three-Way Comparison + Assessment ───────────────────────────
 function rc(t){return{CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"}[t]||"#888";}
