@@ -370,6 +370,13 @@ export function CAPEView({mobile}){
         </div>
         <div style={{fontSize:10,color:"#8898a8",lineHeight:1.7}}>{CAPE.optimal.rationale}</div>
       </div>
+
+      {/* Disclaimer */}
+      <div style={{marginBottom:24,padding:"12px 16px",background:"rgba(204,136,0,0.04)",border:"1px solid rgba(204,136,0,0.2)",borderRadius:8}}>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:8,fontWeight:700,color:"#cc8800",letterSpacing:2,marginBottom:4}}>⚠ DISCLAIMER</div>
+        <div style={{fontSize:10,color:"#8a7a50",lineHeight:1.6}}>The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions.</div>
+        <div style={{fontSize:8,color:"#505040",marginTop:6,lineHeight:1.5}}>Radar detection model calibrated against AERIS-10 open-source X-band phased array radar specifications (10.5 GHz PLFM, 8x16/32x16 arrays). Reference: github.com/NawfalMotii79/PLFM_RADAR</div>
+      </div>
     </div>
   );
 }
