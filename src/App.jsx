@@ -8,9 +8,8 @@ function useMobile(bp=768){const[m,setM]=useState(typeof window!=="undefined"?wi
 // ── Static geography ─────────────────────────────────────────────────────────
 const PERIM=[[147,54],[441,32],[686,43],[930,64],[1126,86],[1249,129],[1347,214],[1371,321],[1371,450],[1347,579],[1298,686],[1175,729],[979,739],[783,729],[588,707],[441,686],[294,643],[171,536],[98,407],[73,279],[98,150]];
 const RW={x1:397,y1:486,x2:955,y2:189,w:13};
-const FAC=[{id:"fl",l:"FLIGHT LINE",x:637,y:364,w:200,h:40,p:"C"},{id:"cant",l:"CANTONMENT",x:465,y:568,w:130,h:50,p:"H"},{id:"mun",l:"MUNITIONS",x:881,y:171,w:80,h:40,p:"C"},{id:"pol",l:"POL",x:783,y:450,w:55,h:35,p:"H"},{id:"cmd",l:"CMD/HQ",x:588,y:504,w:75,h:35,p:"H"},{id:"ops",l:"OPS/INTEL",x:686,y:450,w:75,h:35,p:"H"},{id:"bx",l:"BX/COMM",x:441,y:621,w:75,h:35,p:"M"},{id:"arc",l:"ARCENT/3RD ARMY HQ",x:1102,y:600,w:115,h:45,p:"C"},{id:"catm",l:"FIRING RANGE (CATM)",x:1224,y:664,w:95,h:40,p:"H"},{id:"fam",l:"FAM CAMP",x:1077,y:707,w:80,h:35,p:"M"},{id:"hsg",l:"HOUSING",x:808,y:664,w:80,h:35,p:"M"}];
+const FAC=[{id:"fl",l:"FLIGHT LINE",x:637,y:364,w:200,h:40,p:"C"}];
 const pPath=PERIM.map(([x,y],i)=>`${i===0?"M":"L"} ${x} ${y}`).join(" ")+" Z";
-const rwA=Math.atan2(RW.y2-RW.y1,RW.x2-RW.x1)*(180/Math.PI);
 const pF=p=>p==="C"?"rgba(255,60,60,0.22)":p==="H"?"rgba(255,180,40,0.18)":"rgba(100,180,255,0.12)";
 const pS=p=>p==="C"?"rgba(255,60,60,0.6)":p==="H"?"rgba(255,180,40,0.5)":"rgba(100,180,255,0.35)";
 
@@ -166,8 +165,7 @@ export default function App(){
                   <rect width="1420" height="750" fill={sat&&gmapReady?"rgba(0,0,0,0.3)":"url(#gr)"}/>
                   <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
                   <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(200,200,200,0.2)" strokeWidth={RW.w}/><line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="20,16"/>
-                  <text x={(RW.x1+RW.x2)/2-65} y={(RW.y1+RW.y2)/2-15} fontSize="9" fill="rgba(200,200,200,0.3)" fontFamily="Oxanium,sans-serif" letterSpacing="2" transform={`rotate(${rwA},${(RW.x1+RW.x2)/2-65},${(RW.y1+RW.y2)/2-15})`}>RUNWAY 04/22</text>
-                  {ly.ms&&c2s.length>=2&&<><line x1={c2s[0].x} y1={c2s[0].y} x2={c2s[1].x} y2={c2s[1].y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/><text x={(c2s[0].x+c2s[1].x)/2} y={(c2s[0].y+c2s[1].y)/2-8} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.35)" fontFamily="Oxanium,sans-serif" letterSpacing="1">FIBER BACKBONE</text></>}
+                  {ly.ms&&c2s.length>=2&&<line x1={c2s[0].x} y1={c2s[0].y} x2={c2s[1].x} y2={c2s[1].y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>}
                   {ly.fc&&FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
                   {/* Coverage radii */}
                   {ly.s&&nodes.filter(n=>n.t==="s").map(n=><circle key={`cv${n.id}`} cx={n.x} cy={n.y} r={140} fill="url(#sg)" stroke="rgba(0,180,255,0.06)" strokeWidth="0.5"/>)}
