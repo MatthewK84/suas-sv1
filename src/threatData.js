@@ -1079,3 +1079,117 @@ export async function generatePPTX(data,mods,tod,scenarioName,theme="dark"){
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── Monte Carlo Simulation Engine ──────────────────────────────────────────────
+// Dual uncertainty model: sensor performance variance + threat parameter uncertainty
+// Uses Box-Muller transform for Gaussian sampling, truncated to [0,100] via cl()
+
+function gaussRand(){
+  let u=0,v=0;
+  while(u===0)u=Math.random();
+  while(v===0)v=Math.random();
+  return Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
+}
+
+export const MC_DEFAULT_SIGMA={
+  rf:3,acoustic:8,radar:5,eoir:6,
+  protoInject:4,jamming:6,gps:4,
+  ninjaRF:4,ninjaDefeat:5,
+  suadsRF:4,suadsJam:6,suadsGNSS:5
+};
+
+export const MC_SIGMA_LABELS={
+  rf:"RF Detection",acoustic:"Acoustic Detection",radar:"Radar Detection",eoir:"EO/IR Detection",
+  protoInject:"Protocol Injection",jamming:"Targeted Jamming",gps:"GPS Spoofing",
+  ninjaRF:"NINJA RF Det",ninjaDefeat:"NINJA Defeat",
+  suadsRF:"SUADS RF Det",suadsJam:"SUADS C2 Jam",suadsGNSS:"SUADS GNSS Denial"
+};
+
+export const MC_SIGMA_GROUPS={
+  "SV-1 Detection":["rf","acoustic","radar","eoir"],
+  "SV-1 Defeat":["protoInject","jamming","gps"],
+  "NINJA":["ninjaRF","ninjaDefeat"],
+  "RD-SUADS":["suadsRF","suadsJam","suadsGNSS"]
+};
+
+function perturbScore(base,sigma){return cl(Math.round(base+gaussRand()*sigma));}
+
+function mcComputeStats(arr){
+  const sorted=[...arr].sort((a,b)=>a-b);
+  const n=sorted.length;
+  const mean=Math.round(arr.reduce((s,v)=>s+v,0)/n);
+  const variance=arr.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
+  const sd=Math.round(Math.sqrt(variance)*10)/10;
+  const p5=sorted[Math.floor(n*0.05)];
+  const p10=sorted[Math.floor(n*0.10)];
+  const p25=sorted[Math.floor(n*0.25)];
+  const p50=sorted[Math.floor(n*0.50)];
+  const p75=sorted[Math.floor(n*0.75)];
+  const p90=sorted[Math.floor(n*0.90)];
+  const p95=sorted[Math.floor(n*0.95)];
+  const bins=new Array(20).fill(0);
+  arr.forEach(v=>{const idx=Math.min(19,Math.floor(v/5));bins[idx]++;});
+  const tiers={LOW:0,ELEVATED:0,CRITICAL:0};
+  arr.forEach(v=>{if(v>=81)tiers.LOW++;else if(v>=61)tiers.ELEVATED++;else tiers.CRITICAL++;});
+  Object.keys(tiers).forEach(k=>{tiers[k]=Math.round(tiers[k]/n*1000)/10;});
+  return{mean,sd,p5,p10,p25,p50,p75,p90,p95,bins,tiers,min:sorted[0],max:sorted[n-1]};
+}
+
+export function runMonteCarlo(drone,mods,tod,config={}){
+  const iterations=config.iterations||5000;
+  const sigma={...MC_DEFAULT_SIGMA,...(config.sigma||{})};
+  const threatDist=config.threatDist||null;
+  const weightSigma=config.weightSigma||0;
+  const sv1Eff=[];const ninjaEff=[];const suadsEff=[];
+  const sv1Det=[];const sv1Def=[];
+
+  for(let i=0;i<iterations;i++){
+    let d=drone;
+    if(threatDist&&threatDist.length>0){
+      const r=Math.random();let cum=0;
+      for(const t of threatDist){cum+=t.prob;if(r<=cum){d={...drone,proto:t.proto};break;}}
+    }
+    if(weightSigma>0){d={...d,w:Math.max(50,Math.round(d.w+gaussRand()*weightSigma))};}
+    const base=analyzeDrone(d,mods,tod);
+
+    const pRF=perturbScore(base.rd,sigma.rf);
+    const pAC=perturbScore(base.ad,sigma.acoustic);
+    const pRAD=perturbScore(base.rad,sigma.radar);
+    const pEO=perturbScore(base.ed,sigma.eoir);
+    const pDet=cl(Math.round((1-(1-pRF/100)*(1-pAC/100)*(1-pRAD/100)*(1-pEO/100))*100));
+
+    const pPI=perturbScore(base.pi,sigma.protoInject);
+    const pJM=perturbScore(base.jm,sigma.jamming);
+    const pGS=perturbScore(base.gs,sigma.gps);
+    const pDef=cl(Math.round((1-(1-pPI/100)*(1-pJM/100)*(1-pGS/100))*100));
+
+    const eff=cl(Math.round(pDet*pDef/100));
+    sv1Eff.push(eff);sv1Det.push(pDet);sv1Def.push(pDef);
+
+    const pNRF=perturbScore(base.nRF,sigma.ninjaRF);
+    const pNDef=perturbScore(base.nDefeat,sigma.ninjaDefeat);
+    ninjaEff.push(cl(Math.round(pNRF*pNDef/100)));
+
+    const pSRF=perturbScore(base.sRF,sigma.suadsRF);
+    const pSJam=perturbScore(base.sJam,sigma.suadsJam);
+    const pSGNSS=perturbScore(base.sGNSS,sigma.suadsGNSS);
+    const pSDef=cl(Math.round((1-(1-pSJam/100)*(1-pSGNSS/100))*100));
+    suadsEff.push(cl(Math.round(pSRF*pSDef/100)));
+  }
+
+  return{
+    sv1:{...mcComputeStats(sv1Eff),det:mcComputeStats(sv1Det),def:mcComputeStats(sv1Def)},
+    ninja:mcComputeStats(ninjaEff),
+    suads:mcComputeStats(suadsEff),
+    iterations,
+    drone:{n:drone.n,proto:drone.proto,w:drone.w}
+  };
+}
+
+export function getAllDroneNames(customDrones=[]){
+  return[...DRONES,...customDrones].map(d=>({n:d.n,proto:d.proto,w:d.w,m:d.m}));
+}
+
+export function getDroneByName(name,customDrones=[]){
+  return[...DRONES,...customDrones].find(d=>d.n===name)||DRONES[0];
+}

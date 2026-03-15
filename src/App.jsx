@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import ThreatMatrix, { CAPEView } from "./ThreatMatrix";
+import ThreatMatrix, { CAPEView, MonteCarloPanel } from "./ThreatMatrix";
 import { getNodeEffectiveness, loadGmapKey, saveGmapKey } from "./threatData";
 
 function useFonts(){useEffect(()=>{const l=document.createElement("link");l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";l.rel="stylesheet";document.head.appendChild(l);return()=>document.head.removeChild(l);},[]);}
@@ -132,6 +132,8 @@ export default function App(){
             <h1 onClick={()=>setView("threat")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="threat"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>THREATS</h1>
             <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
             <h1 onClick={()=>setView("cape")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="cape"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>CAPE</h1>
+            <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
+            <h1 onClick={()=>setView("mc")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="mc"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>MC SIM</h1>
           </div>
           {!mobile&&<div style={{fontSize:10,color:"#506070",marginTop:3}}>Shaw AFB, Sumter SC · {nodes.length} nodes · ${totalCost.toLocaleString()}</div>}
         </div>
@@ -141,7 +143,7 @@ export default function App(){
         </div>
       </header>
 
-      {view==="threat"?<ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>:view==="cape"?<CAPEView mobile={mobile}/>:(
+      {view==="threat"?<ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>:view==="cape"?<CAPEView mobile={mobile}/>:view==="mc"?<MonteCarloPanel mobile={mobile}/>:(
         <div style={{display:"flex",flexDirection:"column",height:`calc(100vh - ${mobile?52:90}px)`,overflow:"hidden"}} onMouseMove={handleMove} onMouseUp={handleUp} onTouchMove={handleMove} onTouchEnd={handleUp}>
 
           {armed&&<div style={{padding:"6px 16px",background:`${CAPS[armed].color}15`,borderBottom:`2px solid ${CAPS[armed].color}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
