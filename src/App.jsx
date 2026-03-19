@@ -1,125 +1,40 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import ThreatMatrix, { CAPEView, MonteCarloPanel } from "./ThreatMatrix";
-import { getNodeEffectiveness, loadGmapKey, saveGmapKey } from "./threatData";
+import { useState, useEffect } from "react";
+import ThreatMatrix, { CAPEView } from "./ThreatMatrix";
+import { getNodeEffectiveness } from "./threatData";
 
 function useFonts(){useEffect(()=>{const l=document.createElement("link");l.href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Oxanium:wght@300;400;500;600;700&display=swap";l.rel="stylesheet";document.head.appendChild(l);return()=>document.head.removeChild(l);},[]);}
 function useMobile(bp=768){const[m,setM]=useState(typeof window!=="undefined"?window.innerWidth<bp:false);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[bp]);return m;}
 
-// ── Static geography ─────────────────────────────────────────────────────────
-const PERIM=[[147,54],[441,32],[686,43],[930,64],[1126,86],[1249,129],[1347,214],[1371,321],[1371,450],[1347,579],[1298,686],[1175,729],[979,739],[783,729],[588,707],[441,686],[294,643],[171,536],[98,407],[73,279],[98,150]];
-const RW={x1:397,y1:486,x2:955,y2:189,w:13};
-const FAC=[{id:"fl",l:"FLIGHT LINE",x:637,y:364,w:200,h:40,p:"C"}];
+const PERIM=[[160,100],[380,75],[600,60],[780,70],[880,90],[940,130],[970,200],[970,320],[980,420],[1010,480],[1080,500],[1180,490],[1280,510],[1320,560],[1300,620],[1220,660],[1100,680],[980,670],[880,640],[780,620],[620,650],[440,660],[280,630],[170,560],[130,430],[120,290],[140,170]];
+const RW={x1:220,y1:190,x2:740,y2:470,w:13};
+const FAC=[{id:"fl",l:"FLIGHT LINE",x:480,y:290,w:190,h:45,p:"C"},{id:"cant",l:"CANTONMENT",x:330,y:440,w:130,h:55,p:"H"},{id:"mun",l:"MUNITIONS",x:750,y:210,w:75,h:45,p:"C"},{id:"pol",l:"POL",x:670,y:380,w:55,h:35,p:"H"},{id:"cmd",l:"CMD/HQ",x:400,y:360,w:75,h:35,p:"H"},{id:"ops",l:"OPS/INTEL",x:520,y:375,w:75,h:35,p:"H"},{id:"bx",l:"BX/COMM",x:280,y:510,w:75,h:35,p:"M"},{id:"arc",l:"ARCENT/3RD ARMY HQ",x:1050,y:530,w:115,h:50,p:"C"},{id:"catm",l:"FIRING RANGE (CATM)",x:1220,y:560,w:95,h:40,p:"H"},{id:"fam",l:"FAM CAMP",x:1150,y:650,w:80,h:35,p:"M"},{id:"hsg",l:"HOUSING",x:850,y:600,w:80,h:35,p:"M"}];
+const N=[{id:"S01",x:185,y:140,t:"s"},{id:"S02",x:360,y:100,t:"s"},{id:"S03",x:540,y:85,t:"s"},{id:"S04",x:720,y:90,t:"s"},{id:"S05",x:880,y:140,t:"s"},{id:"S06",x:960,y:260,t:"s"},{id:"S07",x:960,y:400,t:"s"},{id:"S08",x:770,y:610,t:"s"},{id:"S09",x:540,y:645,t:"s"},{id:"S10",x:360,y:635,t:"s"},{id:"S11",x:200,y:565,t:"s"},{id:"S12",x:140,y:430,t:"s"},{id:"S13",x:135,y:270,t:"s"},{id:"S14",x:400,y:270,t:"s"},{id:"S15",x:600,y:320,t:"s"},{id:"S16",x:300,y:380,t:"s"},{id:"S17",x:570,y:500,t:"s"},{id:"S18",x:1010,y:450,t:"s"},{id:"S19",x:1100,y:500,t:"s"},{id:"S20",x:1250,y:520,t:"s"},{id:"S21",x:1310,y:580,t:"s"},{id:"S22",x:1250,y:660,t:"s"},{id:"S23",x:1100,y:680,t:"s"},{id:"S24",x:960,y:660,t:"s"},{id:"S25",x:1050,y:580,t:"s"},{id:"S26",x:1180,y:600,t:"s"},{id:"S27",x:880,y:540,t:"s"},{id:"S28",x:680,y:560,t:"s"},{id:"S29",x:450,y:180,t:"s"},{id:"S30",x:820,y:350,t:"s"},{id:"EA01",x:440,y:190,t:"e"},{id:"EA02",x:650,y:260,t:"e"},{id:"EA03",x:340,y:510,t:"e"},{id:"EA04",x:730,y:440,t:"e"},{id:"EA05",x:500,y:430,t:"e"},{id:"EA06",x:850,y:200,t:"e"},{id:"EA07",x:1020,y:560,t:"e"},{id:"EA08",x:1200,y:580,t:"e"},{id:"EA09",x:950,y:530,t:"e"},{id:"EA10",x:620,y:610,t:"e"}];
+const R=[{id:"R01",x:200,y:170},{id:"R02",x:680,y:100},{id:"R03",x:910,y:170},{id:"R04",x:960,y:380},{id:"R05",x:680,y:600},{id:"R06",x:240,y:530},{id:"R07",x:470,y:300},{id:"R08",x:1080,y:530},{id:"R09",x:1270,y:590},{id:"R10",x:870,y:580}];
+const AC=[{id:"A01",x:210,y:165},{id:"A02",x:390,y:115},{id:"A03",x:565,y:100},{id:"A04",x:740,y:105},{id:"A05",x:895,y:160},{id:"A06",x:945,y:290},{id:"A07",x:945,y:420},{id:"A08",x:750,y:595},{id:"A09",x:555,y:640},{id:"A10",x:380,y:630},{id:"A11",x:215,y:545},{id:"A12",x:148,y:395},{id:"A13",x:148,y:250},{id:"A14",x:430,y:255},{id:"A15",x:620,y:290},{id:"A16",x:780,y:240},{id:"A17",x:1030,y:470},{id:"A18",x:1130,y:510},{id:"A19",x:1280,y:540},{id:"A20",x:1290,y:640},{id:"A21",x:1120,y:670},{id:"A22",x:1060,y:560},{id:"A23",x:1170,y:620},{id:"A24",x:860,y:560}];
+const EO=[{id:"T01",x:420,y:305},{id:"T02",x:560,y:310},{id:"T03",x:770,y:185},{id:"T04",x:350,y:465},{id:"T05",x:230,y:200},{id:"T06",x:230,y:500},{id:"T07",x:870,y:160},{id:"T08",x:800,y:580},{id:"T09",x:1040,y:500},{id:"T10",x:1080,y:620},{id:"T11",x:1240,y:545},{id:"T12",x:1160,y:660}];
+const C2P={x:460,y:350,l:"C2 PRIMARY"};const C2S={x:1060,y:600,l:"C2 SECONDARY"};
+const TIPS={s:{title:"Passive RF Sensor Cluster",icon:"◉",color:"#00b4ff",role:"DETECT · CLASSIFY · GEOLOCATE",what:"3-element interferometric DF array across 70 MHz to 6 GHz.",how:["3x Ettus B205mini-i with GPS-disciplined phase sync","Instantaneous AoA via phase interferometry","TDOA multilateration across 40 nodes","RF fingerprinting + anomaly detection","ML platform ID to C2 for EA cueing"],specs:[["SDR","3x Ettus B205mini-i"],["Compute","Jetson Orin Nano Super"],["Backhaul","RFD900x (NDAA)"],["Power","200W solar + 100Ah LiFePO4"],["Range","~2-3 km"]],count:"30 clusters · 90 DF"},e:{title:"Electronic Attack + DF",icon:"▲",color:"#ff3c3c",role:"DETECT · REDIRECT · DEFEAT",what:"3-element DF array + high-power SDR TX for countermeasures.",how:["DF contributes to TDOA geolocation","X310 + UBX-160 drives directional antennas","Protocol injection: spoofs RTH/land","Targeted jamming: forces failsafe","GPS L1 spoofing: redirects position","All fire simultaneously"],specs:[["DF","3x B205mini-i + GPSDO"],["TX","X310 + 2x UBX-160"],["PA","10W@2.4 / 5W@5.8 GHz"],["Compute","Jetson Orin NX 16GB"],["Power","Hardwired AC + UPS"]],count:"10 clusters · 30 DF · 10 TX"},r:{title:"EchoGuard Radar Tower",icon:"◆",color:"#00cc66",role:"DETECT · TRACK · CLASSIFY",what:"3x K-band ESA radars on 20 ft tower for 360° coverage.",how:["3x EchoGuard 120° Az x 80° El each","Group 1 sUAS at ~1 km","Doppler classification at 250-500m","RadarHub fuses tracks","4D data feeds C2 via GigE","Radar-cued EA auto-engages"],specs:[["Radar","3x EchoGuard ESA"],["Band","K-band"],["FOV","120°x80°/unit"],["Tracks","20 sim./unit"],["SWaP","1.25kg, IP67, <50W"]],count:"10 towers · 30 units"},ac:{title:"Acoustic MEMS Array",icon:"◎",color:"#a070d0",role:"DETECT RF-SILENT",what:"16-element MEMS mic array with beamforming for DOA.",how:["16x Knowles MEMS mics","Teensy 4.1 TDM; Jetson beamforming","CNN classifier: drone vs ambient","BPF harmonics classify platform","DOA cues EO/IR turret","~300-500m range"],specs:[["Mics","16x Knowles SPH0645"],["Acq","Teensy 4.1"],["Compute","Jetson Orin Nano Super"],["Power","100W solar + 30Ah"],["Range","~300-500m"]],count:"24 arrays"},eo:{title:"EO/IR Tracking Turret",icon:"◐",color:"#e0a030",role:"TRACK · CONFIRM",what:"Gyro-stabilized LWIR thermal + HD PTZ with AI tracking.",how:["SPI M1-D: LWIR + HD visible","MVP/9960 AI auto-tracker","Jetson CNN classification","Slews to cue in <3 sec","Track feeds C2 fusion","IR illuminator for night"],specs:[["Gimbal","SPI M1-D"],["Tracker","MVP/9960"],["Compute","Jetson Orin Nano Super"],["Mount","Pole, PoE++"],["Coverage","360° pan"]],count:"12 turrets"},c2:{title:"C2 Fusion Server",icon:"■",color:"#ffcc00",role:"FUSE · DECIDE · COMMAND",what:"Ingests all phenomenologies, fuses tracks, commands EA.",how:["Primary + Secondary via fiber","Multi-modal fusion","ML threat classification","Operator COP display","Auto EA trigger logic","Full data logging"],specs:[["Server","2x Dell R660xs"],["GPU","2x NVIDIA T1000"],["Net","10 GbE + fiber"],["SW","GNU Radio, PyTorch"],["UPS","2x APC 1500VA"]],count:"2 servers"}};
+
 const pPath=PERIM.map(([x,y],i)=>`${i===0?"M":"L"} ${x} ${y}`).join(" ")+" Z";
+const rwA=Math.atan2(RW.y2-RW.y1,RW.x2-RW.x1)*(180/Math.PI);
+const mLinks=(()=>{const o=[];for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++)if(Math.hypot(N[i].x-N[j].x,N[i].y-N[j].y)<200)o.push([i,j]);return o;})();
 const pF=p=>p==="C"?"rgba(255,60,60,0.22)":p==="H"?"rgba(255,180,40,0.18)":"rgba(100,180,255,0.12)";
 const pS=p=>p==="C"?"rgba(255,60,60,0.6)":p==="H"?"rgba(255,180,40,0.5)":"rgba(100,180,255,0.35)";
-
-// ── Capability definitions ───────────────────────────────────────────────────
-const CAPS={
-  s:{name:"RF Sensor",icon:"◉",color:"#00b4ff",radius:140,cost:3864,max:30,desc:"3-element DF array · 2-3 km · Solar powered"},
-  e:{name:"EA Node",icon:"▲",color:"#ff3c3c",radius:90,cost:17148,max:10,desc:"DF + TX · Protocol inject + Jam + GPS spoof"},
-  r:{name:"Radar Tower",icon:"◆",color:"#00cc66",radius:120,cost:24085,max:10,desc:"3x EchoGuard ESA · K-band · 1 km"},
-  ac:{name:"Acoustic",icon:"◎",color:"#a070d0",radius:45,cost:3200,max:24,desc:"16-MEMS array · 300-500m · RF-silent detect"},
-  eo:{name:"EO/IR Turret",icon:"◐",color:"#e0a030",radius:0,cost:8000,max:12,desc:"SPI M1-D thermal + HD PTZ · AI track"},
-  c2:{name:"C2 Server",icon:"■",color:"#ffcc00",radius:0,cost:58795,max:2,desc:"Fusion server · All phenomenologies · Auto EA"},
-};
-const TIPS={s:{title:"Passive RF Sensor Cluster",icon:"◉",color:"#00b4ff",what:"3-element interferometric DF array across 70 MHz to 6 GHz.",specs:[["SDR","3x Ettus B205mini-i"],["Compute","Jetson Orin Nano Super"],["Backhaul","RFD900x (NDAA)"],["Power","200W solar + 100Ah LiFePO4"],["Range","~2-3 km"]]},e:{title:"Electronic Attack + DF",icon:"▲",color:"#ff3c3c",what:"3-element DF array + high-power SDR TX for countermeasures.",specs:[["DF","3x B205mini-i + GPSDO"],["TX","X310 + 2x UBX-160"],["PA","10W@2.4 / 5W@5.8 GHz"],["Compute","Jetson Orin NX 16GB"],["Power","Hardwired AC + UPS"]]},r:{title:"EchoGuard Radar Tower",icon:"◆",color:"#00cc66",what:"3x K-band ESA radars on 20 ft tower for 360° coverage.",specs:[["Radar","3x EchoGuard ESA"],["Band","K-band"],["FOV","120°x80°/unit"],["Tracks","20 sim./unit"],["SWaP","1.25kg, IP67, <50W"]]},ac:{title:"Acoustic MEMS Array",icon:"◎",color:"#a070d0",what:"16-element MEMS mic array with beamforming for DOA.",specs:[["Mics","16x Knowles SPH0645"],["Acq","Teensy 4.1"],["Compute","Jetson Orin Nano Super"],["Power","100W solar + 30Ah"],["Range","~300-500m"]]},eo:{title:"EO/IR Tracking Turret",icon:"◐",color:"#e0a030",what:"Gyro-stabilized LWIR thermal + HD PTZ with AI tracking.",specs:[["Gimbal","SPI M1-D"],["Tracker","MVP/9960"],["Compute","Jetson Orin Nano Super"],["Mount","Pole, PoE++"],["Coverage","360° pan"]]},c2:{title:"C2 Fusion Server",icon:"■",color:"#ffcc00",what:"Ingests all phenomenologies, fuses tracks, commands EA.",specs:[["Server","2x Dell R660xs"],["GPU","2x NVIDIA T1000"],["Net","10 GbE + fiber"],["SW","GNU Radio, PyTorch"],["UPS","2x APC 1500VA"]]}};
-
-// ── Default SV-1 layout ──────────────────────────────────────────────────────
-const DEFAULT_NODES=[
-  {id:"s_1",t:"s",x:196,y:86},{id:"s_2",t:"s",x:490,y:54},{id:"s_3",t:"s",x:783,y:64},{id:"s_4",t:"s",x:1053,y:86},{id:"s_5",t:"s",x:1298,y:150},{id:"s_6",t:"s",x:1359,y:279},{id:"s_7",t:"s",x:1359,y:429},{id:"s_8",t:"s",x:1322,y:589},{id:"s_9",t:"s",x:1175,y:707},{id:"s_10",t:"s",x:930,y:729},{id:"s_11",t:"s",x:686,y:718},{id:"s_12",t:"s",x:416,y:675},{id:"s_13",t:"s",x:196,y:536},{id:"s_14",t:"s",x:122,y:364},{id:"s_15",t:"s",x:110,y:214},{id:"s_16",t:"s",x:563,y:343},{id:"s_17",t:"s",x:808,y:364},{id:"s_18",t:"s",x:563,y:450},{id:"s_19",t:"s",x:734,y:514},{id:"s_20",t:"s",x:1224,y:536},{id:"s_21",t:"s",x:1273,y:664},{id:"s_22",t:"s",x:1077,y:707},{id:"s_23",t:"s",x:1028,y:621},{id:"s_24",t:"s",x:1126,y:557},{id:"s_25",t:"s",x:979,y:471},{id:"s_26",t:"s",x:1028,y:321},{id:"s_27",t:"s",x:686,y:236},{id:"s_28",t:"s",x:563,y:579},{id:"s_29",t:"s",x:734,y:621},{id:"s_30",t:"s",x:1151,y:257},
-  {id:"e_1",t:"e",x:588,y:321},{id:"e_2",t:"e",x:808,y:343},{id:"e_3",t:"e",x:514,y:493},{id:"e_4",t:"e",x:783,y:429},{id:"e_5",t:"e",x:637,y:450},{id:"e_6",t:"e",x:906,y:193},{id:"e_7",t:"e",x:1077,y:579},{id:"e_8",t:"e",x:1200,y:621},{id:"e_9",t:"e",x:930,y:514},{id:"e_10",t:"e",x:783,y:643},
-  {id:"r_1",t:"r",x:269,y:107},{id:"r_2",t:"r",x:808,y:64},{id:"r_3",t:"r",x:1249,y:150},{id:"r_4",t:"r",x:1347,y:321},{id:"r_5",t:"r",x:1249,y:664},{id:"r_6",t:"r",x:808,y:718},{id:"r_7",t:"r",x:612,y:343},{id:"r_8",t:"r",x:1102,y:579},{id:"r_9",t:"r",x:367,y:600},{id:"r_10",t:"r",x:930,y:471},
-  {id:"ac_1",t:"ac",x:245,y:75},{id:"ac_2",t:"ac",x:563,y:43},{id:"ac_3",t:"ac",x:881,y:54},{id:"ac_4",t:"ac",x:1175,y:107},{id:"ac_5",t:"ac",x:1322,y:193},{id:"ac_6",t:"ac",x:1347,y:343},{id:"ac_7",t:"ac",x:1347,y:493},{id:"ac_8",t:"ac",x:1273,y:664},{id:"ac_9",t:"ac",x:1028,y:729},{id:"ac_10",t:"ac",x:734,y:718},{id:"ac_11",t:"ac",x:441,y:664},{id:"ac_12",t:"ac",x:196,y:514},{id:"ac_13",t:"ac",x:98,y:321},{id:"ac_14",t:"ac",x:122,y:150},{id:"ac_15",t:"ac",x:686,y:321},{id:"ac_16",t:"ac",x:930,y:364},{id:"ac_17",t:"ac",x:686,y:450},{id:"ac_18",t:"ac",x:881,y:493},{id:"ac_19",t:"ac",x:1175,y:557},{id:"ac_20",t:"ac",x:1126,y:643},{id:"ac_21",t:"ac",x:979,y:686},{id:"ac_22",t:"ac",x:930,y:600},{id:"ac_23",t:"ac",x:1053,y:236},{id:"ac_24",t:"ac",x:1102,y:429},
-  {id:"eo_1",t:"eo",x:612,y:321},{id:"eo_2",t:"eo",x:783,y:343},{id:"eo_3",t:"eo",x:881,y:214},{id:"eo_4",t:"eo",x:539,y:493},{id:"eo_5",t:"eo",x:318,y:107},{id:"eo_6",t:"eo",x:465,y:664},{id:"eo_7",t:"eo",x:1224,y:129},{id:"eo_8",t:"eo",x:857,y:664},{id:"eo_9",t:"eo",x:1077,y:557},{id:"eo_10",t:"eo",x:1224,y:621},{id:"eo_11",t:"eo",x:1200,y:707},{id:"eo_12",t:"eo",x:808,y:600},
-  {id:"c2_1",t:"c2",x:612,y:493},{id:"c2_2",t:"c2",x:1102,y:611},
-];
-
-const LAYOUT_KEY="shaw_cuas_layout";
-function loadLayout(){try{const s=localStorage.getItem(LAYOUT_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
-function saveLayout(nodes){try{localStorage.setItem(LAYOUT_KEY,JSON.stringify(nodes));}catch(e){}}
-function screenToSVG(el,cx,cy){const r=el.getBoundingClientRect();return{x:Math.round((cx-r.left)/r.width*1420),y:Math.round((cy-r.top)/r.height*750)};}
+function effColor(v,a=0.35){if(v>=70)return`rgba(0,204,102,${a})`;if(v>=50)return`rgba(200,200,0,${a})`;if(v>=30)return`rgba(255,150,0,${a})`;return`rgba(255,60,60,${a})`;}
+const TCC={CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"};
 
 export default function App(){
   useFonts();const mobile=useMobile();
   const[view,setView]=useState("map");const[threat,setThreat]=useState(null);
-  const[ly,setLy]=useState({s:true,e:true,r:true,ac:true,eo:true,ms:!mobile,fc:true});
-  const[nodes,setNodes]=useState(()=>loadLayout()||[...DEFAULT_NODES]);
-  const[armed,setArmed]=useState(null);
-  const[sel,setSel]=useState(null);
-  const[dragging,setDragging]=useState(null);
-  const svgRef=useRef(null);const nextId=useRef(1000);
-
-  // Satellite
-  const[sat,setSat]=useState(false);const[gmapReady,setGmapReady]=useState(false);
-  const[gmapKey,setGmapKey]=useState(loadGmapKey);const[showGmapPrompt,setShowGmapPrompt]=useState(false);
-  const[gmapKeyInput,setGmapKeyInput]=useState("");
-  const gmapRef=useRef(null);const gmapInstance=useRef(null);
-  useEffect(()=>{if(!sat||!gmapKey||window.google?.maps)return;if(document.querySelector('script[src*="maps.googleapis.com"]'))return;const s=document.createElement("script");s.src=`https://maps.googleapis.com/maps/api/js?key=${gmapKey}&callback=__gmapInit`;s.async=true;s.defer=true;window.__gmapInit=()=>{setGmapReady(true);delete window.__gmapInit;};s.onerror=()=>{setSat(false);};document.head.appendChild(s);},[sat,gmapKey]);
-  useEffect(()=>{if(window.google?.maps)setGmapReady(true);},[]);
-  useEffect(()=>{if(!sat||!gmapReady||!gmapRef.current||gmapInstance.current)return;gmapInstance.current=new window.google.maps.Map(gmapRef.current,{center:{lat:33.9695,lng:-80.4690},zoom:14.5,mapTypeId:"satellite",disableDefaultUI:true,gestureHandling:"none",tilt:0,rotateControl:false,keyboardShortcuts:false});},[sat,gmapReady]);
-  const toggleSat=useCallback(()=>{if(!sat&&!gmapKey){setShowGmapPrompt(true);return;}setSat(s=>!s);},[sat,gmapKey]);
-  const saveGmapKeyAndGo=()=>{if(gmapKeyInput.trim()){saveGmapKey(gmapKeyInput.trim());setGmapKey(gmapKeyInput.trim());setShowGmapPrompt(false);setSat(true);}};
-
-  useEffect(()=>{saveLayout(nodes);},[nodes]);
-  const counts=useMemo(()=>{const c={};Object.keys(CAPS).forEach(k=>{c[k]=nodes.filter(n=>n.t===k).length;});return c;},[nodes]);
-  const totalCost=useMemo(()=>nodes.reduce((a,n)=>a+(CAPS[n.t]?.cost||0),0),[nodes]);
-  const meshNodes=useMemo(()=>nodes.filter(n=>n.t==="s"||n.t==="e"),[nodes]);
-  const mLinks=useMemo(()=>{const o=[];for(let i=0;i<meshNodes.length;i++)for(let j=i+1;j<meshNodes.length;j++)if(Math.hypot(meshNodes[i].x-meshNodes[j].x,meshNodes[i].y-meshNodes[j].y)<200)o.push([i,j]);return o;},[meshNodes]);
-  const c2s=useMemo(()=>nodes.filter(n=>n.t==="c2"),[nodes]);
-
-  const placeNode=useCallback((x,y)=>{
-    if(!armed||counts[armed]>=(CAPS[armed]?.max||999))return;
-    nextId.current++;
-    setNodes(prev=>[...prev,{id:`${armed}_${nextId.current}`,t:armed,x,y}]);
-    if(!mobile)setArmed(null);
-  },[armed,counts,mobile]);
-
-  const handleSvgClick=useCallback((e)=>{
-    if(!svgRef.current)return;
-    const pt=screenToSVG(svgRef.current,e.clientX,e.clientY);
-    if(armed){placeNode(pt.x,pt.y);return;}
-    setSel(null);
-  },[armed,placeNode]);
-
-  const handleNodeDown=useCallback((e,id)=>{
-    e.stopPropagation();if(armed)return;setSel(id);setDragging(id);
-  },[armed]);
-
-  const handleMove=useCallback((e)=>{
-    if(!dragging||!svgRef.current)return;
-    const cx=e.touches?e.touches[0].clientX:e.clientX;
-    const cy=e.touches?e.touches[0].clientY:e.clientY;
-    const pt=screenToSVG(svgRef.current,cx,cy);
-    setNodes(prev=>prev.map(n=>n.id===dragging?{...n,x:pt.x,y:pt.y}:n));
-  },[dragging]);
-
-  const handleUp=useCallback(()=>{setDragging(null);},[]);
-  const deleteNode=useCallback((id)=>{setNodes(prev=>prev.filter(n=>n.id!==id));setSel(null);},[]);
-  useEffect(()=>{const h=e=>{if((e.key==="Delete"||e.key==="Backspace")&&sel&&document.activeElement?.tagName!=="INPUT"){e.preventDefault();deleteNode(sel);}};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[sel,deleteNode]);
-
-  const tg=k=>setLy(l=>({...l,[k]:!l[k]}));
+  const[act,setAct]=useState(null);const[pin,setPin]=useState(null);
+  const[ly,setLy]=useState({rf:true,ea:true,rd:true,ac:true,eo:true,ms:!mobile,fc:true});
+  const[showPanel,setShowPanel]=useState(false);
+  const cur=pin||act;const tip=cur?TIPS[cur.t]:null;
+  const hv=(id,t)=>{if(!mobile)setAct({id,t});};const lv=()=>{if(!mobile)setAct(null);};
+  const cl=(id,t)=>{setPin(pin&&pin.id===id?null:{id,t});if(mobile)setShowPanel(true);};
+  const isA=id=>cur&&cur.id===id;const tg=k=>setLy(l=>({...l,[k]:!l[k]}));
   const handleShowOnMap=(scored)=>{setThreat(scored);setView("map");};
-  const selNode=sel?nodes.find(n=>n.id===sel):null;
-  const selTip=selNode?TIPS[selNode.t]:null;
-  const selCap=selNode?CAPS[selNode.t]:null;
-
-  // ── Render node shape ──────────────────────────────────────────────────────
-  function NodeShape({n}){
-    const cap=CAPS[n.t];if(!cap||ly[n.t]===false)return null;
-    const isSel=sel===n.id;const sz=mobile?12:9;
-    return<g style={{cursor:armed?"crosshair":"grab"}} filter={isSel?"url(#gl)":undefined}
-      onMouseDown={e=>handleNodeDown(e,n.id)} onTouchStart={e=>{e.stopPropagation();handleNodeDown(e,n.id);}}
-      onClick={e=>{e.stopPropagation();if(!armed)setSel(n.id);}}>
-      {/* DF sub-nodes for RF and EA */}
-      {(n.t==="s"||n.t==="e")&&<><circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${cap.color}${isSel?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${cap.color}${isSel?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${cap.color}${isSel?"77":"22"}`} strokeWidth="0.6"/></>}
-      {n.t==="s"&&<circle cx={n.x} cy={n.y} r={sz} fill={isSel?cap.color:`${cap.color}55`} stroke={cap.color} strokeWidth={isSel?2.5:1.3}/>}
-      {n.t==="e"&&<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={isSel?cap.color:`${cap.color}55`} stroke={cap.color} strokeWidth={isSel?2.5:1.3}/>}
-      {n.t==="r"&&<><rect x={n.x-sz} y={n.y-sz} width={sz*2} height={sz*2} fill={isSel?cap.color:`${cap.color}55`} stroke={cap.color} strokeWidth={isSel?2.5:1.5} rx="2" transform={`rotate(45,${n.x},${n.y})`}/><text x={n.x} y={n.y+3.5} textAnchor="middle" fontSize={mobile?"8":"6"} fill="#fff" fontFamily="Oxanium,sans-serif" fontWeight="700">R</text></>}
-      {n.t==="ac"&&<><circle cx={n.x} cy={n.y} r={sz} fill="none" stroke={isSel?cap.color:`${cap.color}40`} strokeWidth="0.7"/><circle cx={n.x} cy={n.y} r={sz*1.4} fill="none" stroke={`${cap.color}15`} strokeWidth="0.5"/><circle cx={n.x} cy={n.y} r={sz*0.55} fill={isSel?cap.color:`${cap.color}55`}/></>}
-      {n.t==="eo"&&<><circle cx={n.x} cy={n.y} r={sz} fill="none" stroke={isSel?cap.color:`${cap.color}55`} strokeWidth={isSel?2:1.2}/><circle cx={n.x} cy={n.y} r={sz*0.4} fill={isSel?cap.color:`${cap.color}55`}/></>}
-      {n.t==="c2"&&<><rect x={n.x-16} y={n.y-9} width={32} height={18} fill={isSel?`${cap.color}40`:`${cap.color}15`} stroke={cap.color} strokeWidth={isSel?2:1.5} rx="3"/><text x={n.x} y={n.y+3} textAnchor="middle" fontSize="5.5" fill={cap.color} fontFamily="Oxanium,sans-serif" fontWeight="700">C2</text></>}
-    </g>;
-  }
+  const eff=threat?getNodeEffectiveness(threat):null;
 
   return(
     <div style={{background:"#060a10",minHeight:"100vh",fontFamily:"'IBM Plex Mono',monospace",color:"#b8c4d0",overflow:"hidden"}}>
@@ -127,126 +42,83 @@ export default function App(){
         <div style={{flex:1,minWidth:0}}>
           {!mobile&&<div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:5,fontWeight:300}}>DODAF SV-1 SYSTEMS INTERFACE DESCRIPTION</div>}
           <div style={{display:"flex",alignItems:"baseline",gap:mobile?10:16,margin:mobile?"0":"4px 0 0"}}>
-            <h1 onClick={()=>setView("map")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="map"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>SV-1 MAP</h1>
+            <h1 onClick={()=>setView("map")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="map"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>SV-1 MAP</h1>
             <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
-            <h1 onClick={()=>setView("threat")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="threat"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>THREATS</h1>
+            <h1 onClick={()=>setView("threat")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="threat"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>THREATS</h1>
             <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
-            <h1 onClick={()=>setView("cape")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="cape"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>CAPE</h1>
-            <span style={{color:"#1a3a2a",fontSize:mobile?16:20}}>|</span>
-            <h1 onClick={()=>setView("mc")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="mc"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer"}}>MC SIM</h1>
+            <h1 onClick={()=>setView("cape")} style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:view==="cape"?"#e4ecf4":"#506070",letterSpacing:1.5,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>CAPE</h1>
           </div>
-          {!mobile&&<div style={{fontSize:10,color:"#506070",marginTop:3}}>Shaw AFB, Sumter SC · {nodes.length} nodes · ${totalCost.toLocaleString()}</div>}
+          {!mobile&&<div style={{fontSize:10,color:"#506070",marginTop:3}}>Shaw AFB, Sumter SC · 4 Phenomenologies · SV-1 vs RD-SUADS vs NINJA</div>}
         </div>
         <div style={{fontSize:mobile?9:10,color:"#506070",textAlign:"right",lineHeight:1.7}}>
           <div><span style={{color:"#00ff88"}}>CLASSIFICATION:</span> UNCLASSIFIED // FOUO</div>
-          {!mobile&&<div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:600}}>${totalCost.toLocaleString()} TOTAL SYSTEM</div>}
+          {!mobile&&<div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:600}}>$1,643,758 TOTAL SYSTEM</div>}
         </div>
       </header>
 
-      {view==="threat"?<ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>:view==="cape"?<CAPEView mobile={mobile}/>:view==="mc"?<MonteCarloPanel mobile={mobile}/>:(
-        <div style={{display:"flex",flexDirection:"column",height:`calc(100vh - ${mobile?52:90}px)`,overflow:"hidden"}} onMouseMove={handleMove} onMouseUp={handleUp} onTouchMove={handleMove} onTouchEnd={handleUp}>
-
-          {armed&&<div style={{padding:"6px 16px",background:`${CAPS[armed].color}15`,borderBottom:`2px solid ${CAPS[armed].color}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:16}}>{CAPS[armed].icon}</span>
-              <span style={{fontFamily:"'Oxanium',sans-serif",fontSize:11,color:CAPS[armed].color,letterSpacing:2,fontWeight:700}}>PLACING: {CAPS[armed].name.toUpperCase()}</span>
-              <span style={{fontSize:10,color:"#607080"}}>({counts[armed]||0}/{CAPS[armed].max})</span>
+      {view==="threat"?(
+        <ThreatMatrix onShowOnMap={handleShowOnMap} mobile={mobile}/>
+      ):view==="cape"?(
+        <CAPEView mobile={mobile}/>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",height:`calc(100vh - ${mobile?52:90}px)`,overflow:"hidden"}}>
+          {threat&&eff&&(
+            <div style={{padding:mobile?"6px 12px":"8px 24px",background:"linear-gradient(90deg,rgba(255,60,60,0.08),rgba(255,60,60,0.02))",borderBottom:"1px solid rgba(255,60,60,0.2)",display:"flex",alignItems:"center",gap:mobile?6:12,flexWrap:"wrap",flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:TCC[threat.rt],boxShadow:`0 0 8px ${TCC[threat.rt]}`,flexShrink:0}}/>
+                <span style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?11:12,fontWeight:700,color:"#e4ecf4",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{threat.n}</span>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                {[["SV-1",threat.or,threat.rt,"#00cc66"],["SUADS",threat.sRisk,threat.sTier,"#2266cc"],["NINJA",threat.nRisk,threat.nTier,"#cc8800"]].map(([l,r,t,c])=><span key={l} style={{fontSize:8,fontWeight:700,fontFamily:"'Oxanium',sans-serif",color:TCC[t],background:`${TCC[t]}20`,padding:"2px 6px",borderRadius:3,flexShrink:0}}><span style={{color:c,marginRight:3}}>{l}</span>{r}%</span>)}
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setView("threat")} style={{padding:mobile?"6px 10px":"3px 10px",borderRadius:3,border:"1px solid rgba(0,255,120,0.3)",background:"transparent",color:"#00ff88",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",minHeight:mobile?36:undefined}}>← MATRIX</button>
+                <button onClick={()=>setThreat(null)} style={{padding:mobile?"6px 10px":"3px 10px",borderRadius:3,border:"1px solid rgba(255,60,60,0.3)",background:"transparent",color:"#ff6666",fontSize:mobile?11:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",minHeight:mobile?36:undefined}}>✕</button>
+              </div>
             </div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{fontSize:9,color:"#607080"}}>{mobile?"Tap map to place":"Click map to place"}</span>
-              <button onClick={()=>setArmed(null)} style={{padding:"4px 12px",borderRadius:4,border:"1px solid rgba(255,60,60,0.3)",background:"transparent",color:"#ff6666",fontSize:10,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",minHeight:mobile?36:undefined}}>CANCEL</button>
-            </div>
-          </div>}
-
+          )}
           <div style={{display:"flex",flex:1,overflow:"hidden",flexDirection:mobile?"column":"row"}}>
-            <div style={{flex:"1 1 0",padding:mobile?4:8,minWidth:0,overflow:mobile?"auto":"hidden",WebkitOverflowScrolling:"touch"}}>
-              <div style={{position:"relative",width:mobile?"200%":undefined,minWidth:mobile?700:undefined}}>
-                {sat&&gmapReady&&<div ref={gmapRef} style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",borderRadius:6,zIndex:0}}/>}
-                <svg ref={svgRef} viewBox="0 0 1420 750" onClick={handleSvgClick} style={{position:"relative",zIndex:1,width:"100%",cursor:armed?"crosshair":dragging?"grabbing":"default",background:sat&&gmapReady?"transparent":"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:`1px solid ${armed?CAPS[armed].color+"66":"rgba(0,255,120,0.1)"}`,userSelect:"none"}}>
-                  <defs><radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,180,255,0.08)"/><stop offset="100%" stopColor="rgba(0,180,255,0)"/></radialGradient><radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,60,60,0.07)"/><stop offset="100%" stopColor="rgba(255,60,60,0)"/></radialGradient><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,204,102,0.08)"/><stop offset="100%" stopColor="rgba(0,204,102,0)"/></radialGradient><radialGradient id="ag" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(160,112,208,0.1)"/><stop offset="100%" stopColor="rgba(160,112,208,0)"/></radialGradient><filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,120,0.02)" strokeWidth="0.5"/></pattern></defs>
-                  <rect width="1420" height="750" fill={sat&&gmapReady?"rgba(0,0,0,0.3)":"url(#gr)"}/>
-                  <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
-                  <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(200,200,200,0.2)" strokeWidth={RW.w}/><line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="20,16"/>
-                  {ly.ms&&c2s.length>=2&&<line x1={c2s[0].x} y1={c2s[0].y} x2={c2s[1].x} y2={c2s[1].y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>}
-                  {ly.fc&&FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
-                  {/* Coverage radii */}
-                  {ly.s&&nodes.filter(n=>n.t==="s").map(n=><circle key={`cv${n.id}`} cx={n.x} cy={n.y} r={140} fill="url(#sg)" stroke="rgba(0,180,255,0.06)" strokeWidth="0.5"/>)}
-                  {ly.e&&nodes.filter(n=>n.t==="e").map(n=><circle key={`cv${n.id}`} cx={n.x} cy={n.y} r={90} fill="url(#eg)" stroke="rgba(255,60,60,0.12)" strokeWidth="1" strokeDasharray="4,3"/>)}
-                  {ly.r&&nodes.filter(n=>n.t==="r").map(n=><circle key={`cv${n.id}`} cx={n.x} cy={n.y} r={120} fill="url(#rg)" stroke="rgba(0,204,102,0.12)" strokeWidth="1.5" strokeDasharray="6,4"/>)}
-                  {ly.ac&&nodes.filter(n=>n.t==="ac").map(n=><circle key={`cv${n.id}`} cx={n.x} cy={n.y} r={45} fill="url(#ag)" stroke="rgba(160,112,208,0.15)" strokeWidth="1" strokeDasharray="3,3"/>)}
-                  {/* Mesh */}
-                  {ly.ms&&mLinks.map(([a,b],i)=><line key={`ml${i}`} x1={meshNodes[a].x} y1={meshNodes[a].y} x2={meshNodes[b].x} y2={meshNodes[b].y} stroke="rgba(0,255,120,0.06)" strokeWidth="0.6"/>)}
-                  {ly.ms&&nodes.filter(n=>n.t==="e").map(n=>{const tgt=c2s.length?c2s.reduce((b,c)=>Math.hypot(c.x-n.x,c.y-n.y)<Math.hypot(b.x-n.x,b.y-n.y)?c:b,c2s[0]):null;return tgt?<line key={`ec${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>:null;})}
-                  {/* Nodes */}
-                  {nodes.map(n=><NodeShape key={n.id} n={n}/>)}
-                  <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
-                  <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
-                </svg>
-              </div>
+            <div style={{flex:"1 1 0",padding:mobile?6:12,minWidth:0,overflow:mobile?"auto":"hidden",WebkitOverflowScrolling:"touch"}}>
+              <svg viewBox="0 0 1420 750" style={{width:mobile?"200%":"100%",minWidth:mobile?700:undefined,background:"radial-gradient(ellipse at 45% 40%,#0e1520,#080c14)",borderRadius:6,border:"1px solid rgba(0,255,120,0.1)"}}>
+                <defs><radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,180,255,0.08)"/><stop offset="100%" stopColor="rgba(0,180,255,0)"/></radialGradient><radialGradient id="eg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(255,60,60,0.07)"/><stop offset="100%" stopColor="rgba(255,60,60,0)"/></radialGradient><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(0,204,102,0.08)"/><stop offset="100%" stopColor="rgba(0,204,102,0)"/></radialGradient><radialGradient id="ag" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="rgba(160,112,208,0.1)"/><stop offset="100%" stopColor="rgba(160,112,208,0)"/></radialGradient><filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><pattern id="gr" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,255,120,0.02)" strokeWidth="0.5"/></pattern></defs>
+                <rect width="1420" height="750" fill="url(#gr)"/>
+                <path d={pPath} fill="rgba(0,255,120,0.012)" stroke="rgba(0,255,120,0.4)" strokeWidth="1.5" strokeDasharray="10,5"/>
+                <text x="125" y="148" fontSize="7" fill="rgba(0,255,120,0.45)" fontFamily="Oxanium,sans-serif" letterSpacing="2">INSTALLATION BOUNDARY</text>
+                <text x="460" y="52" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">MAIN CANTONMENT</text>
+                <text x="1120" y="470" fontSize="9" fill="rgba(0,255,120,0.25)" fontFamily="Oxanium,sans-serif" letterSpacing="3" textAnchor="middle">ARCENT EAST</text>
+                <line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(200,200,200,0.2)" strokeWidth={RW.w}/><line x1={RW.x1} y1={RW.y1} x2={RW.x2} y2={RW.y2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="20,16"/>
+                <text x={(RW.x1+RW.x2)/2-65} y={(RW.y1+RW.y2)/2-15} fontSize="9" fill="rgba(200,200,200,0.3)" fontFamily="Oxanium,sans-serif" letterSpacing="2" transform={`rotate(${rwA},${(RW.x1+RW.x2)/2-65},${(RW.y1+RW.y2)/2-15})`}>RUNWAY 04/22</text>
+                <line x1={C2P.x} y1={C2P.y} x2={C2S.x} y2={C2S.y} stroke="rgba(255,200,0,0.2)" strokeWidth="2" strokeDasharray="12,4"/>
+                <text x={(C2P.x+C2S.x)/2} y={(C2P.y+C2S.y)/2-8} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.35)" fontFamily="Oxanium,sans-serif" letterSpacing="1">FIBER BACKBONE</text>
+                {ly.fc&&FAC.map(f=><g key={f.id}><rect x={f.x-f.w/2} y={f.y-f.h/2} width={f.w} height={f.h} fill={pF(f.p)} stroke={pS(f.p)} strokeWidth="1" rx="3"/>{f.l.split("\n").map((line,li)=><text key={li} x={f.x} y={f.y+li*10-(f.l.split("\n").length-1)*5+4} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.6)" fontFamily="Oxanium,sans-serif" fontWeight="600" letterSpacing="0.5">{line}</text>)}</g>)}
+                {ly.rf&&N.filter(n=>n.t==="s").map(n=><circle key={`c${n.id}`} cx={n.x} cy={n.y} r={eff?100+eff.rfSensor*0.4:140} fill={eff?effColor(eff.rfSensor,0.06):"url(#sg)"} stroke={eff?effColor(eff.rfSensor,0.2):"rgba(0,180,255,0.06)"} strokeWidth={eff?1.2:0.5}/>)}
+                {ly.ea&&N.filter(n=>n.t==="e").map(n=><circle key={`e${n.id}`} cx={n.x} cy={n.y} r={eff?60+eff.eaNode*0.3:90} fill={eff?effColor(eff.eaNode,0.05):"url(#eg)"} stroke={eff?effColor(eff.eaNode,0.25):"rgba(255,60,60,0.12)"} strokeWidth={eff?1.5:1} strokeDasharray="4,3"/>)}
+                {ly.rd&&R.map(r=><circle key={`rv${r.id}`} cx={r.x} cy={r.y} r={eff?80+eff.radar*0.4:120} fill={eff?effColor(eff.radar,0.06):"url(#rg)"} stroke={eff?effColor(eff.radar,0.2):"rgba(0,204,102,0.12)"} strokeWidth={eff?1.5:1.5} strokeDasharray="6,4"/>)}
+                {ly.ac&&AC.map(a=><circle key={`av${a.id}`} cx={a.x} cy={a.y} r={eff?25+eff.acoustic*0.25:45} fill={eff?effColor(eff.acoustic,0.08):"url(#ag)"} stroke={eff?effColor(eff.acoustic,0.25):"rgba(160,112,208,0.15)"} strokeWidth={eff?1.2:1} strokeDasharray="3,3"/>)}
+                {ly.ms&&mLinks.map(([a,b],i)=><line key={i} x1={N[a].x} y1={N[a].y} x2={N[b].x} y2={N[b].y} stroke="rgba(0,255,120,0.06)" strokeWidth="0.6"/>)}
+                {ly.ms&&N.filter(n=>n.t==="e").map(n=>{const tgt=n.x<900?C2P:C2S;return<line key={`c${n.id}`} x1={n.x} y1={n.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>;})}
+                {ly.ms&&R.map(r=>{const tgt=r.x<900?C2P:C2S;return<line key={`cr${r.id}`} x1={r.x} y1={r.y} x2={tgt.x} y2={tgt.y} stroke="rgba(255,200,0,0.06)" strokeWidth="0.7" strokeDasharray="6,4"/>;})}
+                {[C2P,C2S].map((c2,i)=><g key={c2.l} style={{cursor:"pointer"}} onMouseEnter={()=>hv(`c2${i}`,"c2")} onMouseLeave={lv} onClick={()=>cl(`c2${i}`,"c2")} filter={isA(`c2${i}`)?"url(#gl)":undefined}><rect x={c2.x-35} y={c2.y-16} width={70} height={32} fill={isA(`c2${i}`)?"rgba(255,200,0,0.3)":"rgba(255,200,0,0.1)"} stroke="rgba(255,200,0,0.6)" strokeWidth="1.5" rx="4"/><text x={c2.x} y={c2.y} textAnchor="middle" fontSize="6" fill="rgba(255,200,0,0.9)" fontFamily="Oxanium,sans-serif" fontWeight="700" letterSpacing="0.5">{c2.l}</text><text x={c2.x} y={c2.y+10} textAnchor="middle" fontSize="5.5" fill="rgba(255,200,0,0.45)">FUSION</text></g>)}
+                {ly.eo&&EO.map(t=><g key={t.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(t.id,"eo")} onMouseLeave={lv} onClick={()=>cl(t.id,"eo")} filter={isA(t.id)?"url(#gl)":undefined}><circle cx={t.x} cy={t.y} r={mobile?12:8} fill="none" stroke={isA(t.id)?"#e0a030":eff?effColor(eff.eoir,0.6):"rgba(224,160,48,0.4)"} strokeWidth={isA(t.id)?2:1.2}/><circle cx={t.x} cy={t.y} r={mobile?5:3.5} fill={isA(t.id)?"#e0a030":eff?effColor(eff.eoir,0.7):"rgba(224,160,48,0.5)"}/><text x={t.x} y={t.y+(mobile?26:20)} textAnchor="middle" fontSize={mobile?"7":"5.5"} fill={isA(t.id)?"#fff":"rgba(224,160,48,0.45)"}>{t.id}</text></g>)}
+                {ly.ac&&AC.map(a=><g key={a.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(a.id,"ac")} onMouseLeave={lv} onClick={()=>cl(a.id,"ac")} filter={isA(a.id)?"url(#gl)":undefined}><circle cx={a.x} cy={a.y} r={mobile?10:7} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.6)":"rgba(160,112,208,0.2)"} strokeWidth="0.7"/><circle cx={a.x} cy={a.y} r={mobile?14:11} fill="none" stroke={isA(a.id)?"rgba(160,112,208,0.4)":"rgba(160,112,208,0.12)"} strokeWidth="0.5"/><circle cx={a.x} cy={a.y} r={mobile?6:4} fill={isA(a.id)?"#a070d0":eff?effColor(eff.acoustic,0.7):"rgba(160,112,208,0.45)"}/><text x={a.x} y={a.y+(mobile?24:20)} textAnchor="middle" fontSize={mobile?"6":"5"} fill={isA(a.id)?"#fff":"rgba(160,112,208,0.35)"}>{a.id}</text></g>)}
+                {R.map(r=><g key={r.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(r.id,"r")} onMouseLeave={lv} onClick={()=>cl(r.id,"r")} filter={isA(r.id)?"url(#gl)":undefined}><rect x={r.x-(mobile?12:9)} y={r.y-(mobile?12:9)} width={mobile?24:18} height={mobile?24:18} fill={isA(r.id)?"#00cc66":eff?effColor(eff.radar,0.5):"rgba(0,204,102,0.3)"} stroke={eff?effColor(eff.radar,1):"#00cc66"} strokeWidth={isA(r.id)?2.5:1.5} rx="2" transform={`rotate(45,${r.x},${r.y})`}/><text x={r.x} y={r.y+4} textAnchor="middle" fontSize={mobile?"9":"7"} fill="#fff" fontFamily="Oxanium,sans-serif" fontWeight="700">R</text><text x={r.x} y={r.y+(mobile?28:24)} textAnchor="middle" fontSize={mobile?"7":"6"} fill={isA(r.id)?"#fff":"rgba(0,204,102,0.5)"}>{r.id}</text></g>)}
+                {N.map(n=>{const s=n.t==="s";const co=s?"#00b4ff":"#ff3c3c";const sz=mobile?(s?9:11):(s?6:8);const a=isA(n.id);const nEff=eff?(s?eff.rfSensor:eff.eaNode):null;const nCol=nEff!==null?effColor(nEff,0.8):co;return(<g key={n.id} style={{cursor:"pointer"}} onMouseEnter={()=>hv(n.id,n.t)} onMouseLeave={lv} onClick={()=>cl(n.id,n.t)} filter={a?"url(#gl)":undefined}><circle cx={n.x-6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x+6} cy={n.y+5} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/><circle cx={n.x} cy={n.y-7} r={1.8} fill="none" stroke={`${co}${a?"77":"22"}`} strokeWidth="0.6"/>{s?<circle cx={n.x} cy={n.y} r={sz} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>:<polygon points={`${n.x},${n.y-sz-2} ${n.x+sz+1},${n.y+sz-1} ${n.x-sz-1},${n.y+sz-1}`} fill={a?co:nEff!==null?effColor(nEff,0.6):`${co}55`} stroke={nCol} strokeWidth={a?2.5:1.3}/>}<text x={n.x} y={n.y+(s?(mobile?24:19):(mobile?28:23))} textAnchor="middle" fontSize={mobile?"7":"5.5"} fill={a?"#fff":`${co}55`}>{n.id}</text></g>);})}
+                <g transform="translate(40,710)"><line x1="0" y1="0" x2="90" y2="0" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.3)"/><line x1="90" y1="-3" x2="90" y2="3" stroke="rgba(255,255,255,0.3)"/><text x="45" y="12" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">~1 KM</text></g>
+                <g transform="translate(1380,40)"><line x1="0" y1="16" x2="0" y2="-6" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"/><polygon points="0,-10 -4,0 4,0" fill="rgba(255,255,255,0.4)"/><text x="0" y="-15" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.4)" fontFamily="Oxanium,sans-serif" fontWeight="700">N</text></g>
+              </svg>
             </div>
-
-            {/* Desktop right panel */}
-            {!mobile&&<div style={{flex:"0 0 310px",padding:"8px 12px",display:"flex",flexDirection:"column",gap:8,overflowY:"auto"}}>
-              <Blk t="CAPABILITIES — CLICK TO PLACE">
-                {Object.entries(CAPS).map(([k,c])=>{const ct=counts[k]||0;const full=ct>=c.max;const isA=armed===k;
-                  return<div key={k} onClick={()=>{if(!full)setArmed(isA?null:k);}} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",marginBottom:3,borderRadius:6,cursor:full?"not-allowed":"pointer",background:isA?`${c.color}20`:"rgba(255,255,255,0.02)",border:`1px solid ${isA?c.color+"88":"rgba(255,255,255,0.04)"}`,opacity:full?0.4:1,transition:"all 0.15s"}}>
-                    <span style={{fontSize:14,color:c.color,width:20,textAlign:"center"}}>{c.icon}</span>
-                    <div style={{flex:1}}><div style={{fontSize:10,fontWeight:700,color:isA?"#e4ecf4":"#b8c4d0"}}>{c.name}</div><div style={{fontSize:7.5,color:"#506070",marginTop:1}}>{c.desc}</div></div>
-                    <div style={{textAlign:"right"}}><div style={{fontSize:11,fontWeight:700,color:c.color,fontFamily:"'IBM Plex Mono',monospace"}}>{ct}/{c.max}</div><div style={{fontSize:7,color:"#405060"}}>${c.cost.toLocaleString()}/ea</div></div>
-                  </div>;})}
-                <div style={{display:"flex",gap:6,marginTop:4}}>
-                  <button onClick={()=>{if(confirm("Reset to default SV-1 layout?")){setNodes([...DEFAULT_NODES]);setSel(null);setArmed(null);}}} style={{flex:1,padding:"5px",borderRadius:4,border:"1px solid rgba(0,255,120,0.2)",background:"transparent",color:"#00ff88",fontSize:8,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1}}>LOAD DEFAULT</button>
-                  <button onClick={()=>{if(confirm("Clear all?")){setNodes([]);setSel(null);setArmed(null);}}} style={{flex:1,padding:"5px",borderRadius:4,border:"1px solid rgba(255,60,60,0.2)",background:"transparent",color:"#ff6666",fontSize:8,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1}}>CLEAR ALL</button>
-                </div>
-              </Blk>
-              <Blk t="LAYERS">
-                {[{k:"s",l:"RF Coverage",c:"#00b4ff"},{k:"e",l:"EA Range",c:"#ff3c3c"},{k:"r",l:"Radar Coverage",c:"#00cc66"},{k:"ac",l:"Acoustic Range",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=><label key={c.k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,cursor:"pointer",fontSize:9.5}}><div onClick={()=>tg(c.k)} style={{width:13,height:13,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:5,height:5,borderRadius:2,background:c.c}}/>}</div><span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span></label>)}
-                <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:3,marginTop:3}}><label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:9.5}}><div onClick={toggleSat} style={{width:13,height:13,borderRadius:3,border:"2px solid #88aacc",background:sat?"rgba(136,170,204,0.3)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sat&&<div style={{width:5,height:5,borderRadius:2,background:"#88aacc"}}/>}</div><span style={{color:sat?"#c8d0d8":"#506070"}}>Satellite</span></label></div>
-              </Blk>
-              {selNode&&selTip?<Blk t={`${selCap.icon} ${selCap.name.toUpperCase()}`}>
-                <div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:6}}>{selTip.what}</div>
-                {selTip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}
-                <button onClick={()=>deleteNode(sel)} style={{width:"100%",marginTop:8,padding:"6px",borderRadius:4,border:"1px solid rgba(255,60,60,0.3)",background:"rgba(255,60,60,0.06)",color:"#ff6666",fontSize:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif"}}>DELETE NODE</button>
-                <div style={{fontSize:7,color:"#405060",marginTop:3,textAlign:"center"}}>Drag to reposition · Delete key to remove</div>
-              </Blk>:<Blk t="INVENTORY">
-                {Object.entries(CAPS).map(([k,c])=><div key={k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:c.color,fontSize:11,width:16,textAlign:"center"}}>{c.icon}</span><span style={{fontSize:9.5}}>{c.name}</span></div><span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{counts[k]||0}</span></div>)}
-                <div style={{marginTop:4,padding:"3px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:1}}>TOTAL</span><span style={{fontFamily:"Oxanium,sans-serif",fontSize:11,color:"#e4ecf4",fontWeight:700}}>{nodes.length} nodes · ${totalCost.toLocaleString()}</span></div>
-              </Blk>}
+            {!mobile&&<div style={{flex:"0 0 310px",padding:"12px 16px 12px 4px",display:"flex",flexDirection:"column",gap:10,overflowY:"auto"}}>
+              <Blk t="LAYER CONTROLS">{[{k:"rf",l:"RF Sensor (2-3 km)",c:"#00b4ff"},{k:"ea",l:"EA Range (1.2 km)",c:"#ff3c3c"},{k:"rd",l:"Radar (1 km)",c:"#00cc66"},{k:"ac",l:"Acoustic (300-500m)",c:"#a070d0"},{k:"eo",l:"EO/IR Turrets",c:"#e0a030"},{k:"ms",l:"Mesh + C2",c:"#00ff88"},{k:"fc",l:"Facilities",c:"#ffb428"}].map(c=><label key={c.k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:5,cursor:"pointer",fontSize:10}}><div onClick={()=>tg(c.k)} style={{width:14,height:14,borderRadius:3,border:`2px solid ${c.c}`,background:ly[c.k]?`${c.c}30`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{ly[c.k]&&<div style={{width:6,height:6,borderRadius:2,background:c.c}}/>}</div><span style={{color:ly[c.k]?"#c8d0d8":"#506070"}}>{c.l}</span></label>)}</Blk>
+              <div style={{background:tip?`linear-gradient(135deg,${tip.color}08,${tip.color}03)`:"rgba(255,255,255,0.02)",border:`1px solid ${tip?tip.color+"40":"rgba(0,255,120,0.1)"}`,borderRadius:8,padding:13,transition:"all 0.3s",minHeight:tip?"auto":90}}>{tip?(<div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{fontSize:20,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:12,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:7.5,color:tip.color,letterSpacing:2,fontWeight:600,marginTop:1}}>{tip.role}</div></div></div><div style={{fontSize:9.5,color:"#8898a8",lineHeight:1.55,marginBottom:10}}>{tip.what}</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,marginBottom:5}}>HOW IT WORKS</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:4,fontSize:9,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:2,margin:"8px 0 4px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:9.5}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:4,padding:"4px 8px",fontSize:9.5,color:tip.color,textAlign:"center",fontWeight:600,marginTop:8}}>{tip.count}</div></div>):(<div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:24,opacity:0.12,marginBottom:5}}>◎</div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:9.5,color:"#405060",letterSpacing:1}}>HOVER OR CLICK ANY NODE</div></div>)}</div>
+              <Blk t="SYSTEM INVENTORY">{[["◉","#00b4ff","RF Clusters","30 (90 DF)"],["▲","#ff3c3c","EA Nodes","10 (30 DF)"],["◆","#00cc66","Radars","30 (10 towers)"],["◎","#a070d0","Acoustic","24 (MEMS)"],["◐","#e0a030","EO/IR","12 (thermal)"],["■","#ffcc00","C2","2 (Pri+Sec)"]].map(([sym,col,l,v],i)=><div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:col,fontSize:11,width:16,textAlign:"center"}}>{sym}</span><span style={{fontSize:9.5}}>{l}</span></div><span style={{fontSize:9.5,color:"#e4ecf4",fontWeight:600}}>{v}</span></div>)}<div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid rgba(0,255,120,0.15)",display:"flex",justifyContent:"space-between"}}><span style={{fontFamily:"Oxanium,sans-serif",fontSize:8.5,color:"#00ff88",letterSpacing:1}}>TOTAL DF APERTURES</span><span style={{fontFamily:"Oxanium,sans-serif",fontSize:12,color:"#e4ecf4",fontWeight:700}}>120</span></div></Blk>
             </div>}
-
-            {/* Mobile bottom */}
-            {mobile&&<div style={{flexShrink:0,borderTop:"1px solid rgba(0,255,120,0.15)",background:"#060a10"}}>
-              <div style={{display:"flex",gap:6,padding:"8px 8px 4px",overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-                {Object.entries(CAPS).map(([k,c])=>{const ct=counts[k]||0;const full=ct>=c.max;const isA=armed===k;
-                  return<button key={k} onClick={()=>{if(!full)setArmed(isA?null:k);}} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:`2px solid ${isA?c.color:"#1a2a1a"}`,background:isA?`${c.color}20`:"rgba(6,10,16,0.9)",color:isA?c.color:"#607080",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:full?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:5,minHeight:44,opacity:full?0.4:1}}>
-                    <span style={{fontSize:13}}>{c.icon}</span><span>{c.name}</span><span style={{fontSize:8,opacity:0.5}}>{ct}/{c.max}</span>
-                  </button>;})}
-              </div>
-              <div style={{display:"flex",gap:6,padding:"4px 8px 8px",alignItems:"center"}}>
-                {sel&&<button onClick={()=>deleteNode(sel)} style={{padding:"6px 14px",borderRadius:6,border:"1px solid rgba(255,60,60,0.3)",background:"rgba(255,60,60,0.06)",color:"#ff6666",fontSize:10,fontFamily:"'Oxanium',sans-serif",minHeight:40}}>DEL</button>}
-                <button onClick={toggleSat} style={{padding:"6px 10px",borderRadius:6,border:`2px solid ${sat?"#88aacc":"#1a2a3a"}`,background:sat?"rgba(136,170,204,0.15)":"transparent",color:sat?"#88aacc":"#506070",fontSize:10,fontFamily:"'Oxanium',sans-serif",minHeight:40}}>SAT</button>
-                <button onClick={()=>{if(confirm("Load default SV-1?")){setNodes([...DEFAULT_NODES]);setSel(null);setArmed(null);}}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid rgba(0,255,120,0.15)",background:"transparent",color:"#00ff88",fontSize:9,fontFamily:"'Oxanium',sans-serif",minHeight:40}}>DEFAULT</button>
-                <div style={{flex:1,textAlign:"right",fontSize:9,color:"#506070"}}><span style={{fontWeight:700,color:"#e4ecf4"}}>{nodes.length}</span> nodes · <span style={{color:"#e4ecf4"}}>${(totalCost/1000).toFixed(0)}K</span></div>
-              </div>
-            </div>}
+            {mobile&&tip&&showPanel&&(<div style={{position:"fixed",bottom:0,left:0,right:0,maxHeight:"60vh",overflow:"auto",background:"#0a0e14",borderTop:"2px solid "+tip.color,borderRadius:"16px 16px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.6)",zIndex:20,WebkitOverflowScrolling:"touch",padding:16}}><div style={{width:40,height:4,borderRadius:2,background:"rgba(255,255,255,0.15)",margin:"0 auto 12px"}}/><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24,color:tip.color}}>{tip.icon}</span><div><div style={{fontFamily:"Oxanium,sans-serif",fontSize:14,fontWeight:700,color:"#e4ecf4"}}>{tip.title}</div><div style={{fontSize:9,color:tip.color,letterSpacing:2,fontWeight:600}}>{tip.role}</div></div></div><button onClick={()=>{setShowPanel(false);setPin(null);}} style={{background:"none",border:"none",color:"#506070",fontSize:24,cursor:"pointer",padding:8,minWidth:44,minHeight:44}}>✕</button></div><div style={{fontSize:11,color:"#8898a8",lineHeight:1.55,margin:"10px 0"}}>{tip.what}</div>{tip.how.map((s,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:5,fontSize:10,lineHeight:1.45}}><span style={{color:tip.color,fontWeight:700,flexShrink:0,fontFamily:"Oxanium,sans-serif"}}>{String(i+1).padStart(2,"0")}</span><span style={{color:"#9aa8b6"}}>{s}</span></div>)}<div style={{fontFamily:"Oxanium,sans-serif",fontSize:8,color:"#00ff88",letterSpacing:2,margin:"10px 0 6px"}}>KEY SPECS</div>{tip.specs.map(([k,v],i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",fontSize:11}}><span style={{color:"#506070"}}>{k}</span><span style={{color:"#c8d0d8"}}>{v}</span></div>)}<div style={{background:`${tip.color}15`,borderRadius:6,padding:"8px",fontSize:11,color:tip.color,textAlign:"center",fontWeight:600,marginTop:10}}>{tip.count}</div></div>)}
+            {mobile&&!showPanel&&(<div style={{position:"fixed",bottom:12,right:12,display:"flex",gap:6,zIndex:10}}>{[{k:"rf",c:"#00b4ff",l:"RF"},{k:"ea",c:"#ff3c3c",l:"EA"},{k:"rd",c:"#00cc66",l:"R"},{k:"ac",c:"#a070d0",l:"A"},{k:"eo",c:"#e0a030",l:"E"},{k:"fc",c:"#ffb428",l:"F"}].map(({k,c,l})=><button key={k} onClick={()=>tg(k)} style={{width:36,height:36,borderRadius:18,border:`2px solid ${c}`,background:ly[k]?`${c}30`:"rgba(6,10,16,0.9)",color:ly[k]?c:"#506070",fontSize:10,fontWeight:700,fontFamily:"'Oxanium',sans-serif",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{l}</button>)}</div>)}
           </div>
-
-          {!mobile&&<footer style={{padding:"6px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:7.5,color:"#303a44",flexShrink:0}}><div style={{padding:"4px 8px",background:"rgba(204,136,0,0.06)",border:"1px solid rgba(204,136,0,0.15)",borderRadius:4,color:"#8a7040",lineHeight:1.5}}>DISCLAIMER: The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions.</div></footer>}
+          {!mobile&&<footer style={{padding:"10px 24px",borderTop:"1px solid rgba(0,255,120,0.1)",fontSize:8,color:"#303a44",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8,flexShrink:0}}><span>DoDAF SV-1 · SV-1 vs RD-SUADS vs NINJA</span><span>40 RF/EA · 120 DF · 30 radars · 24 acoustic · 12 EO/IR · 2 C2</span></footer>}
         </div>
       )}
-
-      {showGmapPrompt&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.7)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowGmapPrompt(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:"#0a0e14",border:"1px solid rgba(0,255,120,0.3)",borderRadius:12,padding:mobile?20:24,maxWidth:420,width:"100%"}}>
-          <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,color:"#00ff88",letterSpacing:3,marginBottom:12}}>GOOGLE MAPS API KEY</div>
-          <div style={{fontSize:mobile?11:10,color:"#8898a8",lineHeight:1.6,marginBottom:12}}>Enter a Maps JavaScript API key. Get one at <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{color:"#00ff88"}}>console.cloud.google.com</a>.</div>
-          <input value={gmapKeyInput} onChange={e=>setGmapKeyInput(e.target.value)} placeholder="AIza..." style={{width:"100%",padding:mobile?"12px":"10px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(0,255,120,0.2)",borderRadius:6,color:"#e4ecf4",fontSize:mobile?14:12,fontFamily:"'IBM Plex Mono',monospace",boxSizing:"border-box",outline:"none"}} onKeyDown={e=>e.key==="Enter"&&saveGmapKeyAndGo()}/>
-          <div style={{display:"flex",gap:8,marginTop:12}}>
-            <button onClick={saveGmapKeyAndGo} style={{flex:1,padding:mobile?"12px":"8px",borderRadius:6,border:"1px solid rgba(0,255,120,0.3)",background:"rgba(0,255,120,0.1)",color:"#00ff88",fontSize:mobile?12:10,fontFamily:"'Oxanium',sans-serif",fontWeight:700,letterSpacing:2,cursor:"pointer",minHeight:mobile?44:undefined}}>SAVE + ENABLE</button>
-            <button onClick={()=>setShowGmapPrompt(false)} style={{padding:mobile?"12px 16px":"8px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:"#506070",fontSize:mobile?12:10,cursor:"pointer"}}>CANCEL</button>
-          </div>
-        </div>
-      </div>}
     </div>
   );
 }
-function Blk({t,children}){return<div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(0,255,120,0.1)",borderRadius:8,padding:10}}><div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:3,marginBottom:6,fontWeight:500}}>{t}</div>{children}</div>;}
+function Blk({t,children}){return<div style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(0,255,120,0.1)",borderRadius:8,padding:11}}><div style={{fontFamily:"Oxanium,sans-serif",fontSize:7.5,color:"#00ff88",letterSpacing:3,marginBottom:7,fontWeight:500}}>{t}</div>{children}</div>;}
