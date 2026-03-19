@@ -242,185 +242,180 @@ export default function ThreatMatrix({onShowOnMap,mobile}){
 }
 
 // ── CAPE View (standalone tab) ────────────────────────────────────────────────
-const CC={sv1:"#00ff88",ninja:"#ff6644",suads:"#4488ff",reddi:"#00ddaa",sica:"#44ccaa"};
+const CC={sv1:"#2EAE7A",ninja:"#C4793D",suads:"#4A7FB5",reddi:"#3A8F7D",sica:"#6B946E"};
 
 export function CAPEView({mobile}){
   const DATA=useMemo(()=>analyzeDrones({}),[]);
   const CAPE=useMemo(()=>generateCAPE(DATA),[DATA]);
   const sorted=useMemo(()=>[...CAPE.systems].sort((a,b)=>b.eff[2]-a.eff[2]),[CAPE]);
   const[hover,setHover]=useState(null);
-  const maxCost=6500000;
-  const costY=(c)=>345-(c/maxCost)*300;
+  const[visible,setVisible]=useState(()=>{const v={};sorted.forEach(s=>{v[s.id]=true;});return v;});
+  const toggleSys=(id)=>setVisible(v=>({...v,[id]:!v[id]}));
 
-  // Pre-compute all points with de-overlapped label positions
+  const maxCost=6500000;
+  const chartH=380;const chartTop=50;const chartBot=chartTop+chartH;
+  const chartL=120;const chartR=740;
+  const costY=c=>chartBot-(c/maxCost)*chartH;
+  const xAt=li=>chartL+li*((chartR-chartL)/2);
+
   const allPts=useMemo(()=>{
     const pts=[];
     sorted.forEach((s,si)=>{
       [1,2,3].forEach((lvl,li)=>{
         const cost=s.baseCost*lvl;
-        const x=180+li*260;
-        const y=costY(cost);
-        pts.push({id:s.id,si,li,lvl,x,y,cost,eff:s.eff[li],label:s.label,color:CC[s.id]||s.color,scale:s.scale,baseCost:s.baseCost});
+        pts.push({id:s.id,si,li,lvl,x:xAt(li),y:costY(cost),cost,eff:s.eff[li],label:s.label,color:CC[s.id]||s.color,scale:s.scale,baseCost:s.baseCost});
       });
     });
-    // De-overlap labels at each investment column
+    // De-overlap labels per column
     [0,1,2].forEach(li=>{
       const col=pts.filter(p=>p.li===li).sort((a,b)=>a.y-b.y);
-      // Assign initial label positions
-      col.forEach(p=>{p.labelY=p.y-22;});
-      // Push apart any that are too close
-      const minGap=20;
-      for(let pass=0;pass<5;pass++){
+      col.forEach(p=>{p.labelY=p.y-24;});
+      const minGap=22;
+      for(let pass=0;pass<6;pass++){
         for(let i=1;i<col.length;i++){
           const gap=col[i].labelY-col[i-1].labelY;
-          if(gap<minGap){
-            const shift=(minGap-gap)/2+0.5;
-            col[i-1].labelY-=shift;
-            col[i].labelY+=shift;
-          }
+          if(gap<minGap){const sh=(minGap-gap)/2+1;col[i-1].labelY-=sh;col[i].labelY+=sh;}
         }
       }
     });
     return pts;
   },[sorted,CAPE]);
 
-  // Group points by system for line drawing
-  const sysPts=useMemo(()=>{
-    const m={};
-    allPts.forEach(p=>{if(!m[p.id])m[p.id]=[];m[p.id].push(p);});
-    return m;
-  },[allPts]);
+  const sysPts=useMemo(()=>{const m={};allPts.forEach(p=>{if(!m[p.id])m[p.id]=[];m[p.id].push(p);});return m;},[allPts]);
+
+  const secStyle={background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8,padding:mobile?12:16,marginTop:16};
+  const secHead={fontFamily:"'Oxanium',sans-serif",fontSize:11,color:"#8898a8",letterSpacing:3,fontWeight:600,marginBottom:10,textTransform:"uppercase"};
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:mobile?"12px":"20px 32px",WebkitOverflowScrolling:"touch",height:`calc(100vh - ${mobile?52:90}px)`,background:"#060a10"}}>
-      <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:5,fontWeight:300,marginBottom:4}}>SHAW AFB C-UAS</div>
-      <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:22,fontWeight:700,color:"#e4ecf4",letterSpacing:2,marginBottom:16}}>COST ASSESSMENT AND PROGRAM EVALUATION</div>
+    <div style={{flex:1,overflow:"auto",padding:mobile?"12px":"24px 36px",WebkitOverflowScrolling:"touch",height:`calc(100vh - ${mobile?52:90}px)`,background:"#060a10"}}>
+      <div style={{maxWidth:1000}}>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:9,color:"#506070",letterSpacing:4,fontWeight:300,marginBottom:2}}>SHAW AFB C-UAS · INVESTMENT ANALYSIS</div>
+        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:mobile?16:20,fontWeight:700,color:"#d0d8e0",letterSpacing:1,marginBottom:20}}>Cost Assessment and Program Evaluation</div>
 
-      {/* Main Chart with hover card overlay */}
-      <div style={{position:"relative",maxWidth:960}}>
-        <svg viewBox="0 0 820 440" style={{width:"100%",display:"block",background:"linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.005))",borderRadius:10,border:"1px solid rgba(0,255,120,0.08)"}}>
-          {/* Grid */}
-          {[0,1,2,3,4,5,6].map(i=><line key={`g${i}`} x1="100" y1={45+i*50} x2="760" y2={45+i*50} stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>)}
-          {[0,1,2].map(i=><line key={`v${i}`} x1={180+i*260} y1="35" x2={180+i*260} y2="375" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="4,4"/>)}
+        {/* ── Toggle row ────────────────────────────────────────────── */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+          {sorted.map(s=>{const c=CC[s.id]||s.color;const on=visible[s.id];return<button key={s.id} onClick={()=>toggleSys(s.id)} style={{padding:"5px 12px",borderRadius:4,border:`1px solid ${on?c+"88":"rgba(255,255,255,0.08)"}`,background:on?c+"14":"transparent",color:on?c:"#405060",fontSize:9,cursor:"pointer",fontFamily:"'Oxanium',sans-serif",letterSpacing:1,fontWeight:600,transition:"all 0.2s"}}>{s.label}{on?" ✓":""}</button>;})}
+        </div>
 
-          {/* Y-axis */}
-          {["$6M","$5M","$4M","$3M","$2M","$1M","$0"].map((l,i)=><text key={l} x="90" y={49+i*50} textAnchor="end" fontSize="9" fill="#506070" fontFamily="'IBM Plex Mono',monospace">{l}</text>)}
-          <text x="14" y="210" textAnchor="middle" fontSize="9" fill="#506070" fontFamily="'Oxanium',sans-serif" letterSpacing="2" transform="rotate(-90,14,210)">TOTAL COST</text>
+        {/* ── Chart ─────────────────────────────────────────────────── */}
+        <div style={{position:"relative",...secStyle,padding:0,overflow:"hidden"}}>
+          <svg viewBox="0 0 800 480" style={{width:"100%",display:"block"}}>
+            {/* Grid */}
+            {[0,1,2,3,4,5,6].map(i=><line key={`g${i}`} x1={chartL} y1={chartTop+i*(chartH/6)} x2={chartR} y2={chartTop+i*(chartH/6)} stroke="rgba(255,255,255,0.035)" strokeWidth="0.5"/>)}
+            {[0,1,2].map(i=><line key={`v${i}`} x1={xAt(i)} y1={chartTop-5} x2={xAt(i)} y2={chartBot+5} stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>)}
 
-          {/* X-axis */}
-          {["1x BASELINE","2x INVESTMENT","3x INVESTMENT"].map((l,i)=><text key={l} x={180+i*260} y={415} textAnchor="middle" fontSize="10" fill="#e4ecf4" fontFamily="'Oxanium',sans-serif" fontWeight="700" letterSpacing="2">{l}</text>)}
+            {/* Y-axis */}
+            {["$6M","$5M","$4M","$3M","$2M","$1M","$0"].map((l,i)=><text key={l} x={chartL-12} y={chartTop+4+i*(chartH/6)} textAnchor="end" fontSize="8" fill="#405060" fontFamily="'IBM Plex Mono',monospace">{l}</text>)}
+            <text x="30" y={(chartTop+chartBot)/2} textAnchor="middle" fontSize="8" fill="#405060" fontFamily="'Oxanium',sans-serif" letterSpacing="2" transform={`rotate(-90,30,${(chartTop+chartBot)/2})`}>TOTAL COST</text>
 
-          {/* Optimal zone highlight */}
-          <rect x="370" y={costY(CAPE.optimal.cost)-30} width="210" height="60" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" strokeWidth="1.5" strokeDasharray="6,3"/>
+            {/* X-axis */}
+            {["1x Baseline","2x Investment","3x Investment"].map((l,i)=><text key={l} x={xAt(i)} y={chartBot+30} textAnchor="middle" fontSize="9" fill="#8898a8" fontFamily="'Oxanium',sans-serif" fontWeight="600" letterSpacing="1">{l}</text>)}
 
-          {/* System lines */}
-          {sorted.map(s=>{
-            const c=CC[s.id]||s.color;
-            const pts=sysPts[s.id]||[];
-            const pathD=pts.map((p,i)=>`${i===0?"M":"L"}${p.x},${p.y}`).join(" ");
-            return<g key={s.id}>
-              <path d={pathD} fill="none" stroke={c} strokeWidth="5" strokeLinejoin="round" opacity="0.12"/>
-              <path d={pathD} fill="none" stroke={c} strokeWidth="2.5" strokeLinejoin="round"/>
-            </g>;
-          })}
+            {/* Optimal zone */}
+            <rect x={xAt(1)-15} y={costY(CAPE.optimal.cost)-25} width={xAt(1)-chartL+30} height="50" rx="6" fill="rgba(46,174,122,0.05)" stroke="rgba(46,174,122,0.15)" strokeWidth="1" strokeDasharray="6,4"/>
 
-          {/* Data points with de-overlapped labels */}
-          {allPts.map((p,i)=>{
-            const isHov=hover&&hover.id===p.id&&hover.lvl===p.lvl;
-            return<g key={i} style={{cursor:"pointer"}} onMouseEnter={()=>setHover(p)} onMouseLeave={()=>setHover(null)} onClick={()=>setHover(hover&&hover.id===p.id&&hover.lvl===p.lvl?null:p)}>
-              {/* Thin connector if label was pushed away */}
-              {Math.abs(p.labelY-(p.y-22))>3&&<line x1={p.x} y1={p.labelY+14} x2={p.x} y2={p.y-7} stroke={p.color} strokeWidth="0.5" opacity="0.3" strokeDasharray="2,2"/>}
-              {/* Label pill */}
-              <rect x={p.x-17} y={p.labelY} width="34" height="15" rx="4" fill={isHov?p.color:"#0a0e14"} stroke={p.color} strokeWidth={isHov?2:1}/>
-              <text x={p.x} y={p.labelY+11} textAnchor="middle" fontSize="9" fill={isHov?"#060a10":p.color} fontWeight="700" fontFamily="'IBM Plex Mono',monospace">{p.eff}%</text>
-              {/* Dot */}
-              <circle cx={p.x} cy={p.y} r={isHov?9:6} fill="#060a10" stroke={p.color} strokeWidth={isHov?3:2} style={{transition:"r 0.15s"}}/>
-              <circle cx={p.x} cy={p.y} r={isHov?4:2.5} fill={p.color}/>
-              {isHov&&<circle cx={p.x} cy={p.y} r="16" fill="none" stroke={p.color} strokeWidth="1" opacity="0.3"/>}
-            </g>;
-          })}
+            {/* System lines (only visible ones) */}
+            {sorted.filter(s=>visible[s.id]).map(s=>{
+              const c=CC[s.id]||s.color;
+              const pts=sysPts[s.id]||[];
+              const pathD=pts.map((p,i)=>`${i===0?"M":"L"}${p.x},${p.y}`).join(" ");
+              return<g key={s.id}>
+                <path d={pathD} fill="none" stroke={c} strokeWidth="4" strokeLinejoin="round" opacity="0.08"/>
+                <path d={pathD} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" opacity="0.9"/>
+              </g>;
+            })}
 
-          {/* Optimal point star */}
-          {(()=>{const oCost=CAPE.optimal.cost;const y=costY(oCost);const x=440;return<g>
-            <line x1={x-40} y1={y} x2={x+40} y2={y} stroke="#00ff88" strokeWidth="1.5" strokeDasharray="5,3"/>
-            <polygon points={`${x},${y-14} ${x+4},${y-4} ${x+13},${y-4} ${x+6},${y+2} ${x+8},${y+13} ${x},${y+7} ${x-8},${y+13} ${x-6},${y+2} ${x-13},${y-4} ${x-4},${y-4}`} fill="#00ff88" stroke="#060a10" strokeWidth="1"/>
-            <rect x={x+18} y={y-16} width="145" height="32" rx="5" fill="rgba(0,20,10,0.92)" stroke="rgba(0,255,136,0.5)" strokeWidth="1.5"/>
-            <text x={x+26} y={y-2} fontSize="9" fill="#00ff88" fontWeight="700" fontFamily="'Oxanium',sans-serif" letterSpacing="1">★ OPTIMAL POINT</text>
-            <text x={x+26} y={y+11} fontSize="8" fill="#88ccaa" fontFamily="'IBM Plex Mono',monospace">${(oCost/1000000).toFixed(2)}M · {CAPE.optimal.eff}% eff</text>
-          </g>;})()}
+            {/* Data points (only visible systems) */}
+            {allPts.filter(p=>visible[p.id]).map((p,i)=>{
+              const isHov=hover&&hover.id===p.id&&hover.lvl===p.lvl;
+              return<g key={i} style={{cursor:"pointer"}} onMouseEnter={()=>setHover(p)} onMouseLeave={()=>setHover(null)} onClick={()=>setHover(hover&&hover.id===p.id&&hover.lvl===p.lvl?null:p)}>
+                {Math.abs(p.labelY-(p.y-24))>4&&<line x1={p.x} y1={p.labelY+15} x2={p.x} y2={p.y-7} stroke={p.color} strokeWidth="0.5" opacity="0.2" strokeDasharray="2,2"/>}
+                <rect x={p.x-16} y={p.labelY} width="32" height="14" rx="3" fill={isHov?p.color:"#080c14"} stroke={p.color} strokeWidth={isHov?1.5:0.7} opacity={isHov?1:0.85}/>
+                <text x={p.x} y={p.labelY+10.5} textAnchor="middle" fontSize="8" fill={isHov?"#080c14":p.color} fontWeight="700" fontFamily="'IBM Plex Mono',monospace">{p.eff}%</text>
+                <circle cx={p.x} cy={p.y} r={isHov?7:5} fill="#080c14" stroke={p.color} strokeWidth={isHov?2.5:1.5}/>
+                <circle cx={p.x} cy={p.y} r={isHov?3:2} fill={p.color}/>
+              </g>;
+            })}
 
-          {/* Legend */}
-          {sorted.map((s,i)=>{const c=CC[s.id]||s.color;return<g key={`l${s.id}`}>
-            <line x1="110" y1={50+i*18} x2="132" y2={50+i*18} stroke={c} strokeWidth="2.5"/>
-            <circle cx="121" cy={50+i*18} r="3.5" fill={c}/>
-            <text x="138" y={50+i*18+3.5} fontSize="8" fill={c} fontWeight="600" fontFamily="'IBM Plex Mono',monospace">{s.label} ({s.eff[2]}%)</text>
-          </g>;})}
+            {/* Optimal marker */}
+            {(()=>{const oCost=CAPE.optimal.cost;const y=costY(oCost);const x=xAt(1);return<g>
+              <line x1={x-25} y1={y} x2={x+25} y2={y} stroke="#2EAE7A" strokeWidth="1" strokeDasharray="4,3" opacity="0.6"/>
+              <circle cx={x} cy={y} r="8" fill="none" stroke="#2EAE7A" strokeWidth="1.5" strokeDasharray="3,2"/>
+              <circle cx={x} cy={y} r="3" fill="#2EAE7A"/>
+              <rect x={x+14} y={y-14} width="135" height="28" rx="4" fill="rgba(8,12,20,0.92)" stroke="rgba(46,174,122,0.35)" strokeWidth="1"/>
+              <text x={x+22} y={y-1} fontSize="8" fill="#2EAE7A" fontWeight="700" fontFamily="'Oxanium',sans-serif" letterSpacing="1">OPTIMAL INVESTMENT</text>
+              <text x={x+22} y={y+10} fontSize="7" fill="#6aaa90" fontFamily="'IBM Plex Mono',monospace">${(oCost/1000000).toFixed(2)}M · {CAPE.optimal.eff}% combined</text>
+            </g>;})()}
 
-          <text x="710" y="46" textAnchor="middle" fontSize="7" fill="#405060" fontFamily="'Oxanium',sans-serif" letterSpacing="1">DIMINISHING RETURNS →</text>
-          <line x1="655" y1="42" x2="755" y2="42" stroke="#405060" strokeWidth="0.5" markerEnd="url(#arr)"/>
-          <defs><marker id="arr" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#405060"/></marker></defs>
-        </svg>
+            {/* Legend */}
+            {sorted.map((s,i)=>{const c=CC[s.id]||s.color;const on=visible[s.id];return<g key={`l${s.id}`} opacity={on?1:0.25}>
+              <line x1={chartL+8} y1={chartTop+2+i*15} x2={chartL+24} y2={chartTop+2+i*15} stroke={c} strokeWidth="2"/>
+              <circle cx={chartL+16} cy={chartTop+2+i*15} r="2.5" fill={c}/>
+              <text x={chartL+30} y={chartTop+5+i*15} fontSize="7" fill={on?"#8898a8":"#303840"} fontFamily="'IBM Plex Mono',monospace">{s.label} ({s.eff[2]}%)</text>
+            </g>;})}
+          </svg>
 
-        {/* Hover tooltip card */}
-        {hover&&<div style={{position:"absolute",top:12,right:12,pointerEvents:"none",zIndex:20,padding:"14px 18px",background:"rgba(6,10,16,0.95)",border:`2px solid ${hover.color}`,borderRadius:10,boxShadow:`0 4px 30px rgba(0,0,0,0.7), 0 0 20px ${hover.color}22`,minWidth:240,backdropFilter:"blur(12px)"}}>
-          <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:13,fontWeight:700,color:hover.color,letterSpacing:2,marginBottom:8}}>{hover.label.toUpperCase()}</div>
-          <div style={{display:"grid",gridTemplateColumns:"auto 1fr",gap:"5px 16px",fontSize:11,fontFamily:"'IBM Plex Mono',monospace"}}>
-            <div style={{color:"#506070"}}>Investment</div><div style={{color:"#e4ecf4",fontWeight:700}}>{hover.lvl}x</div>
-            <div style={{color:"#506070"}}>Total Cost</div><div style={{color:"#e4ecf4",fontWeight:700}}>${hover.cost>=1000000?(hover.cost/1000000).toFixed(2)+"M":(hover.cost/1000).toFixed(0)+"K"}</div>
-            <div style={{color:"#506070"}}>Effectiveness</div><div style={{color:hover.eff>=81?"#00ff88":hover.eff>=61?"#ff9900":"#ff4444",fontWeight:700,fontSize:14}}>{hover.eff}%</div>
-            <div style={{color:"#506070"}}>Cost / 1%</div><div style={{color:"#e4ecf4",fontWeight:700}}>${Math.round(hover.cost/hover.eff).toLocaleString()}</div>
-            <div style={{color:"#506070"}}>Scales by</div><div style={{color:"#8898a8",fontSize:10}}>{hover.scale}</div>
+          {/* Hover card */}
+          {hover&&<div style={{position:"absolute",top:16,right:16,pointerEvents:"none",zIndex:20,padding:"14px 18px",background:"rgba(8,12,20,0.96)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minWidth:220}}>
+            <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:11,fontWeight:700,color:hover.color,letterSpacing:1,marginBottom:8,borderBottom:`1px solid ${hover.color}33`,paddingBottom:6}}>{hover.label}</div>
+            <div style={{display:"grid",gridTemplateColumns:"auto 1fr",gap:"4px 14px",fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}}>
+              <span style={{color:"#506070"}}>Level</span><span style={{color:"#c0c8d0",fontWeight:600}}>{hover.lvl}x Investment</span>
+              <span style={{color:"#506070"}}>Cost</span><span style={{color:"#c0c8d0",fontWeight:600}}>${hover.cost>=1e6?(hover.cost/1e6).toFixed(2)+"M":(hover.cost/1000).toFixed(0)+"K"}</span>
+              <span style={{color:"#506070"}}>Effectiveness</span><span style={{color:hover.eff>=81?"#2EAE7A":hover.eff>=61?"#C4A03D":"#B85C4A",fontWeight:700,fontSize:12}}>{hover.eff}%</span>
+              <span style={{color:"#506070"}}>Cost/1%</span><span style={{color:"#c0c8d0"}}>${Math.round(hover.cost/hover.eff).toLocaleString()}</span>
+            </div>
+            {hover.li>0&&<div style={{marginTop:8,paddingTop:6,borderTop:"1px solid rgba(255,255,255,0.06)",fontSize:9,color:"#506070"}}>+{hover.eff-(allPts.find(pp=>pp.id===hover.id&&pp.li===hover.li-1)?.eff||0)}% from {hover.lvl-1}x · ${(hover.baseCost/1e6).toFixed(2)}M incremental</div>}
+          </div>}
+        </div>
+
+        {/* ── Baseline Costs ───────────────────────────────────────── */}
+        <div style={secStyle}>
+          <div style={secHead}>Baseline System Costs (1x)</div>
+          <div style={{display:"grid",gridTemplateColumns:mobile?"1fr 1fr":`repeat(${sorted.length},1fr)`,gap:10}}>
+            {sorted.map(s=>{const c=CC[s.id]||s.color;return<div key={s.id} style={{padding:"10px 12px",background:"rgba(255,255,255,0.015)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,borderLeft:`3px solid ${c}`}}>
+              <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:8,color:c,letterSpacing:1,fontWeight:600}}>{s.label.toUpperCase()}</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#d0d8e0",margin:"4px 0",fontFamily:"'IBM Plex Mono',monospace"}}>{s.baseCost>=1e6?"$"+(s.baseCost/1e6).toFixed(2)+"M":"$"+(s.baseCost/1000).toFixed(0)+"K"}</div>
+              <div style={{fontSize:8,color:"#607080"}}>{s.eff[0]}% eff · ${Math.round(s.baseCost/s.eff[0]).toLocaleString()}/1%</div>
+              <div style={{fontSize:7,color:"#405060",marginTop:2}}>{s.scale}</div>
+            </div>;})}
           </div>
-          {hover.li>0&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${hover.color}33`,fontSize:10,color:"#607080"}}>+{hover.eff-(allPts.find(pp=>pp.id===hover.id&&pp.li===hover.li-1)?.eff||0)}% gain from {hover.lvl-1}x · ${(hover.baseCost/1000000).toFixed(2)}M incremental</div>}
-        </div>}
-      </div>
-
-      {/* Baseline cost cards */}
-      <div style={{marginTop:20}}>
-        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:3,marginBottom:8}}>BASELINE SYSTEM COSTS (1x)</div>
-        <div style={{display:"grid",gridTemplateColumns:mobile?"1fr 1fr":`repeat(${sorted.length},1fr)`,gap:10}}>
-          {sorted.map(s=>{const c=CC[s.id]||s.color;return<div key={s.id} style={{padding:"10px 12px",background:`linear-gradient(135deg,${c}08,${c}03)`,border:`1px solid ${c}44`,borderRadius:8}}>
-            <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:9,color:c,letterSpacing:1.5,fontWeight:700}}>{s.label.toUpperCase()}</div>
-            <div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",margin:"6px 0",fontFamily:"'IBM Plex Mono',monospace"}}>{s.baseCost>=1000000?"$"+(s.baseCost/1000000).toFixed(2)+"M":"$"+(s.baseCost/1000).toFixed(0)+"K"}</div>
-            <div style={{fontSize:9,color:"#8898a8"}}>{s.eff[0]}% eff · ${Math.round(s.baseCost/s.eff[0]).toLocaleString()}/1%</div>
-            <div style={{fontSize:8,color:"#506070",marginTop:3}}>{s.scale}</div>
-          </div>;})}
         </div>
-      </div>
 
-      {/* Investment scaling table */}
-      <div style={{marginTop:20}}>
-        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:10,color:"#00ff88",letterSpacing:3,marginBottom:8}}>INVESTMENT SCALING</div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}}>
-          <thead><tr style={{borderBottom:"2px solid rgba(0,255,120,0.15)"}}>
-            <th style={{padding:"8px 6px",textAlign:"left",color:"#607080",fontSize:8,letterSpacing:1}}>SYSTEM</th>
-            {["1x BASELINE","2x","3x"].map(l=><th key={l} style={{padding:"8px 6px",textAlign:"center",color:"#607080",fontSize:8,letterSpacing:1}} colSpan={2}>{l}</th>)}
-          </tr></thead>
-          <tbody>{sorted.map((s,i)=>{const c=CC[s.id]||s.color;return<tr key={s.id} style={{borderBottom:"1px solid rgba(255,255,255,0.03)",background:i%2===0?"rgba(255,255,255,0.01)":"transparent"}}>
-            <td style={{padding:"6px",fontWeight:700,color:c,fontSize:10}}>{s.label}</td>
-            {[0,1,2].map(lvl=><>{
-              }<td key={`c${lvl}`} style={{padding:"6px",textAlign:"right",color:"#8898a8",fontSize:9}}>${(s.baseCost*(lvl+1)/1000000).toFixed(2)}M</td>
-              <td key={`e${lvl}`} style={{padding:"6px",textAlign:"center",fontWeight:700,fontSize:11,color:s.eff[lvl]>=81?"#00ff88":s.eff[lvl]>=61?"#ff9900":"#ff4444"}}>{s.eff[lvl]}%{lvl>0&&<span style={{fontSize:8,color:"#506070",marginLeft:4}}>+{s.eff[lvl]-s.eff[lvl-1]}</span>}</td></>)}
-          </tr>;})}</tbody>
-        </table>
-      </div>
-
-      {/* Optimal recommendation */}
-      <div style={{marginTop:20,marginBottom:24,padding:"16px 20px",background:"linear-gradient(135deg,rgba(0,255,136,0.06),rgba(0,255,136,0.02))",border:"2px solid rgba(0,255,136,0.35)",borderRadius:10}}>
-        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:14,fontWeight:700,color:"#00ff88",letterSpacing:2,marginBottom:6}}>★ RECOMMENDED: {CAPE.optimal.label}</div>
-        <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:8}}>
-          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>TOTAL COST</div><div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",fontFamily:"'IBM Plex Mono',monospace"}}>${(CAPE.optimal.cost/1000000).toFixed(2)}M</div></div>
-          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>COMBINED EFF</div><div style={{fontSize:18,fontWeight:700,color:"#00ff88",fontFamily:"'IBM Plex Mono',monospace"}}>{CAPE.optimal.eff}%</div></div>
-          <div><div style={{fontSize:8,color:"#506070",letterSpacing:1}}>COST PER 1%</div><div style={{fontSize:18,fontWeight:700,color:"#e4ecf4",fontFamily:"'IBM Plex Mono',monospace"}}>${Math.round(CAPE.optimal.cost/CAPE.optimal.eff).toLocaleString()}</div></div>
+        {/* ── Investment Scaling ────────────────────────────────────── */}
+        <div style={secStyle}>
+          <div style={secHead}>Investment Scaling</div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}}>
+            <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+              <th style={{padding:"8px 6px",textAlign:"left",color:"#506070",fontSize:7,letterSpacing:1,fontFamily:"'Oxanium',sans-serif"}}>SYSTEM</th>
+              {["1x Baseline","2x","3x"].map(l=><th key={l} style={{padding:"8px 6px",textAlign:"center",color:"#506070",fontSize:7,letterSpacing:1,fontFamily:"'Oxanium',sans-serif"}} colSpan={2}>{l}</th>)}
+            </tr></thead>
+            <tbody>{sorted.map((s,i)=>{const c=CC[s.id]||s.color;return<tr key={s.id} style={{borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+              <td style={{padding:"6px",fontWeight:600,color:c,fontSize:9}}>{s.label}</td>
+              {[0,1,2].map(lvl=><>{
+                }<td key={`c${lvl}`} style={{padding:"6px",textAlign:"right",color:"#607080",fontSize:8}}>${(s.baseCost*(lvl+1)/1e6).toFixed(2)}M</td>
+                <td key={`e${lvl}`} style={{padding:"6px",textAlign:"center",fontWeight:700,fontSize:10,color:s.eff[lvl]>=81?"#2EAE7A":s.eff[lvl]>=61?"#C4A03D":"#B85C4A"}}>{s.eff[lvl]}%{lvl>0&&<span style={{fontSize:7,color:"#405060",marginLeft:4}}>+{s.eff[lvl]-s.eff[lvl-1]}</span>}</td></>)}
+            </tr>;})}</tbody>
+          </table>
         </div>
-        <div style={{fontSize:10,color:"#8898a8",lineHeight:1.7}}>{CAPE.optimal.rationale}</div>
-      </div>
 
-      {/* Disclaimer */}
-      <div style={{marginBottom:24,padding:"12px 16px",background:"rgba(204,136,0,0.04)",border:"1px solid rgba(204,136,0,0.2)",borderRadius:8}}>
-        <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:8,fontWeight:700,color:"#cc8800",letterSpacing:2,marginBottom:4}}>⚠ DISCLAIMER</div>
-        <div style={{fontSize:10,color:"#8a7a50",lineHeight:1.6}}>The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions.</div>
-        <div style={{fontSize:8,color:"#505040",marginTop:6,lineHeight:1.5}}>Radar detection model calibrated against AERIS-10 open-source X-band phased array radar specifications (10.5 GHz PLFM, 8x16/32x16 arrays). Reference: github.com/NawfalMotii79/PLFM_RADAR</div>
+        {/* ── Recommendation ───────────────────────────────────────── */}
+        <div style={{...secStyle,borderColor:"rgba(46,174,122,0.25)",background:"rgba(46,174,122,0.03)"}}>
+          <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:12,fontWeight:700,color:"#2EAE7A",letterSpacing:1,marginBottom:8}}>Recommended: {CAPE.optimal.label}</div>
+          <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:10}}>
+            {[["Total Cost",`$${(CAPE.optimal.cost/1e6).toFixed(2)}M`,"#d0d8e0"],["Combined Eff",`${CAPE.optimal.eff}%`,"#2EAE7A"],["Cost/1%",`$${Math.round(CAPE.optimal.cost/CAPE.optimal.eff).toLocaleString()}`,"#d0d8e0"]].map(([k,v,c])=><div key={k}>
+              <div style={{fontSize:7,color:"#506070",letterSpacing:1,fontFamily:"'Oxanium',sans-serif"}}>{k.toUpperCase()}</div>
+              <div style={{fontSize:16,fontWeight:700,color:c,fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{v}</div>
+            </div>)}
+          </div>
+          <div style={{fontSize:9,color:"#708090",lineHeight:1.65}}>{CAPE.optimal.rationale}</div>
+        </div>
+
+        {/* ── Disclaimer ───────────────────────────────────────────── */}
+        <div style={{...secStyle,borderColor:"rgba(180,140,60,0.15)",background:"rgba(180,140,60,0.02)",marginBottom:24}}>
+          <div style={{fontFamily:"'Oxanium',sans-serif",fontSize:7,fontWeight:600,color:"#8a7a50",letterSpacing:2,marginBottom:4}}>DISCLAIMER</div>
+          <div style={{fontSize:9,color:"#6a6a5a",lineHeight:1.5}}>The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions.</div>
+          <div style={{fontSize:7,color:"#505040",marginTop:4,lineHeight:1.4}}>Radar detection model calibrated against AERIS-10 open-source X-band phased array radar specifications (10.5 GHz PLFM, 8x16/32x16 arrays). Reference: github.com/NawfalMotii79/PLFM_RADAR</div>
+        </div>
       </div>
     </div>
   );

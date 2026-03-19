@@ -640,7 +640,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
 
   html+=`<h1>SHAW AFB C-UAS: SV-1 vs RD-SUADS vs NINJA EFFECTIVENESS COMPARISON</h1>`;
   html+=`<div class="meta"><span>Shaw AFB, Sumter SC · 20th FW · DoDAF SV-1 Comparative Assessment</span><span>${now} · UNCLASSIFIED // FOUO</span></div>`;
-  if(scenarioName)html+=`<div style="background:#0a0e14;color:#00ff88;padding:6px 10px;border-radius:4px;font-family:Oxanium,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:10px">SCENARIO: ${scenarioName.toUpperCase()}</div>`;
+  if(scenarioName)html+=`<div style="background:#0a0e14;color:#2EAE7A;padding:6px 10px;border-radius:4px;font-family:Oxanium,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:10px">SCENARIO: ${scenarioName.toUpperCase()}</div>`;
   html+=`<div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap"><div><strong>ToD:</strong> ${todLabel}</div><div><strong>Platforms:</strong> ${data.length}</div>`;
   if(activeMods.length){html+=`<div><strong>Mods:</strong> `;activeMods.forEach(k=>{html+=`<span class="mod-tag">${HARDENED_MODS[k].icon} ${HARDENED_MODS[k].label}</span>`;});html+=`</div>`;}
   html+=`</div>`;
@@ -830,11 +830,11 @@ export function generateCAPE(data){
   const sicaEff=scale(avgSica,0.04,0.03);
 
   const systems=[
-    {id:"sv1",label:"SV-1 Multi-Modal",color:"#00ff88",baseCost:1643758,eff:sv1Eff,scale:"Sensor nodes + EA nodes"},
-    {id:"ninja",label:"NINJA Gen2",color:"#ff6644",baseCost:2000000,eff:ninjaEff,scale:"Additional sites"},
-    {id:"suads",label:"RD-SUADS",color:"#4488ff",baseCost:2000000,eff:suadsEff,scale:"Additional sites"},
-    {id:"reddi",label:"REDDI (50 units)",color:"#00ddaa",baseCost:100000,eff:reddiEff,scale:"Interceptor units (50→100→150)"},
-    {id:"sica",label:"SICA (50 units)",color:"#44ccaa",baseCost:125000,eff:sicaEff,scale:"Interceptor units (50→100→150)"},
+    {id:"sv1",label:"SV-1 Multi-Modal",color:"#2EAE7A",baseCost:1643758,eff:sv1Eff,scale:"Sensor nodes + EA nodes"},
+    {id:"ninja",label:"NINJA Gen2",color:"#C4793D",baseCost:2000000,eff:ninjaEff,scale:"Additional sites"},
+    {id:"suads",label:"RD-SUADS",color:"#4A7FB5",baseCost:2000000,eff:suadsEff,scale:"Additional sites"},
+    {id:"reddi",label:"REDDI (50 units)",color:"#3A8F7D",baseCost:100000,eff:reddiEff,scale:"Interceptor units (50→100→150)"},
+    {id:"sica",label:"SICA (50 units)",color:"#6B946E",baseCost:125000,eff:sicaEff,scale:"Interceptor units (50→100→150)"},
   ].sort((a,b)=>b.eff[2]-a.eff[2]);
 
   // Optimal point: SV-1 2x + REDDI 1x + SICA 1x
@@ -878,12 +878,12 @@ export async function generatePPTX(data,mods,tod,scenarioName,theme="dark"){
   const bg=dk?"060A10":"FFFFFF";
   const fg=dk?"E4ECF4":"111111";
   const fg2=dk?"8898A8":"666666";
-  const accent=dk?"00FF88":"00AA44";
+  const accent=dk?"2EAE7A":"1E8A5E";
   const hdrBg=dk?"0A0E14":"F0F2F5";
   const cardBg=dk?"0E1420":"F8F9FA";
   const border=dk?"1A3A2A":"DDDDDD";
-  const tierC={CRITICAL:dk?"FF4444":"CC0000",ELEVATED:dk?"FF9900":"CC8800",LOW:dk?"00CC66":"008800"};
-  const sysC={sv1:dk?"00FF88":"00AA44",ninja:dk?"FF6644":"CC4422",suads:dk?"4488FF":"2255CC",reddi:dk?"00DDAA":"008866",sica:dk?"44CCAA":"228866",wolf:dk?"DDAA22":"AA8800"};
+  const tierC={CRITICAL:dk?"B85C4A":"993322",ELEVATED:dk?"C4A03D":"997722",LOW:dk?"2EAE7A":"1E8A5E"};
+  const sysC={sv1:dk?"2EAE7A":"1E8A5E",ninja:dk?"C4793D":"9A5F30",suads:dk?"4A7FB5":"3A6690",reddi:dk?"3A8F7D":"2D7062",sica:dk?"6B946E":"557556",wolf:dk?"B8960A":"8A7008"};
   const hFont="Calibri";const bFont="Calibri";
   const now=new Date().toISOString().split("T")[0];
   const todLabel=TOD_MODES[tod]?.label||"Day";
