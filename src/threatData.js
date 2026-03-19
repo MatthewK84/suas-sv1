@@ -109,95 +109,6 @@ const DRONES=[
   {n:"Wolf Block 3",m:"Wolf Program",c:"Enterprise",p:"VTOL",w:11300,s:78,ft:25,pr:27500,proto:"Doodle Labs Mesh",rtk:false,wp:true,cell:false,enc:true,auto:true,fs:"RTH",props:5,pd:10},
 ];
 
-// ── DroneCompare.org Integration (CC-BY-4.0) ─────────────────────────────────
-// Data from DroneCompare (https://dronecompare.org), licensed under CC-BY-4.0.
-// Maps SV-1 drone names to DroneCompare entity IDs and slugs for product images.
-const DC_MAP={
-  "DJI Mavic 4 Pro":{s:"dji-mavic-4-pro",i:"019c9b70-72cc-7879-9c2f-825b067bc754"},
-  "DJI Mini 5 Pro":{s:"dji-mini-5-pro",i:"019c9b33-aeb7-749a-bf6d-7038688ae7f5"},
-  "DJI Air 3S":{s:"dji-air-3s",i:"019c9b18-b95c-7ac5-aa3a-de8edcf56911"},
-  "DJI Flip":{s:"dji-flip",i:"019c9b88-696c-7a98-88b6-e709a6a4ba5d"},
-  "DJI Neo 2":{s:"dji-neo-2",i:"019c9b88-6969-7aab-b74a-ef05bf113d13"},
-  "DJI Neo":{s:"dji-neo",i:"019c9b88-6963-79e4-a760-71fd0975f449"},
-  "DJI Mini 4K":{s:"dji-mini-4k",i:"019cb433-9959-743c-b117-ffd8f1ee59bb"},
-  "DJI Avata 2":{s:"dji-avata-2",i:"09b39d0a-2d81-481a-8283-45d17d0e04f7"},
-  "DJI Mini 4 Pro":{s:"dji-mini-4-pro",i:"019c643f-169c-7e71-a9d0-a65aa854ba79"},
-  "DJI Air 3":{s:"dji-air-3",i:"019c720c-a537-7102-9596-dc72645887bb"},
-  "DJI Mavic 3 Pro":{s:"dji-mavic-3-pro",i:"019c643f-169f-7243-9303-63b31529ab75"},
-  "DJI Inspire 3":{s:"dji-inspire-3",i:"ae3837ba-fd2a-4a08-a784-ad4590bfde78"},
-  "DJI Mini 2 SE":{s:"dji-mini-2-se",i:"019c9b33-aeb6-7203-8f30-cea96a48841c"},
-  "DJI Mini 3":{s:"dji-mini-3",i:"019c7200-0001-7a0b-b000-d3c5f8a1e001"},
-  "DJI Mavic 3 Classic":{s:"dji-mavic-3-classic",i:"019c643f-169d-7cb9-9c95-61b5eaacc371"},
-  "DJI Mavic 3":{s:"dji-mavic-3",i:"019c643f-169e-75c7-9522-5435d958167c"},
-  "DJI Mini SE":{s:"dji-mini-se",i:"019c9b33-aeb5-7bdf-b819-18cfd874283a"},
-  "DJI Mini 3 Pro":{s:"dji-mini-3-pro",i:"019c9b33-aeb7-76dd-9263-f939b507f865"},
-  "DJI Air 2S":{s:"dji-air-2s",i:"019c9b02-fb27-7298-a1a4-ec0821685bcd"},
-  "DJI FPV":{s:"dji-fpv",i:"9af67567-80fa-48ca-bdda-8145d28054f3"},
-  "DJI Mini 2":{s:"dji-mini-2",i:"019c643f-169b-7f75-ad57-552aa7fb4423"},
-  "DJI Mavic Air 2":{s:"dji-mavic-air-2",i:"019c9af1-9bfd-7545-a356-67348b041a99"},
-  "DJI Mavic Mini":{s:"dji-mavic-mini",i:"019c71c7-53d4-7d28-bebc-8f526c8bf1a0"},
-  "DJI Mavic 2 Pro":{s:"dji-mavic-2-pro",i:"019c7200-0002-7a0b-b000-d3c5f8a1e002"},
-  "DJI Mavic 2 Zoom":{s:"dji-mavic-2-zoom",i:"019c7212-7e51-7ff9-b5c7-c9b72d5d34c3"},
-  "DJI Mavic Air":{s:"dji-mavic-air",i:"019c9ae1-93bc-73dc-99de-1c553a117adc"},
-  "DJI Mavic Pro":{s:"dji-mavic-pro",i:"019c721e-9d24-7ce9-9d77-fb2bb6a390d5"},
-  "DJI Mavic Pro Platinum":{s:"dji-mavic-pro-platinum",i:"ab18d8cc-e2d2-4a23-a760-23ab63c1bba4"},
-  "DJI Spark":{s:"dji-spark",i:"0f2a72d2-a7b8-4051-a47f-39e5eac9e028"},
-  "DJI Phantom 4 Pro V2.0":{s:"dji-phantom-4-pro-v2",i:"019c71cb-5877-7e0b-b153-8c9979db67ef"},
-  "DJI Phantom 4 Pro":{s:"dji-phantom-4-pro",i:"3a365da2-9631-4f6f-ba1b-b4da51f2e383"},
-  "DJI Phantom 4 RTK":{s:"dji-phantom-4-rtk",i:"019c71cb-5879-75fc-a55e-36fe871ff193"},
-  "DJI Phantom 4":{s:"dji-phantom-4",i:"2e2ecf96-b97a-422a-93b6-43be9e339084"},
-  "DJI Inspire 2":{s:"dji-inspire-2",i:"54722fb6-6bb2-43f9-8676-7f265f4f5f6a"},
-  "DJI Matrice 350 RTK":{s:"dji-matrice-350-rtk",i:"019c643f-16a3-76de-a234-1f9232e9fed2"},
-  "DJI Matrice 300 RTK":{s:"dji-matrice-300-rtk",i:"c360b057-6359-4618-98d1-59dc6f26c822"},
-  "DJI Matrice 30":{s:"dji-matrice-30",i:"39d78584-68ef-49f5-9bdb-3130d5169985"},
-  "DJI Matrice 30T":{s:"dji-matrice-30t",i:"cc88b4f7-1ee7-4cef-9f7f-ca3f98b06977"},
-  "DJI Matrice 200 V2":{s:"dji-matrice-200-v2",i:"54ce983d-6959-4efa-ad23-6ebae12c6f39"},
-  "DJI Matrice 400":{s:"dji-matrice-400",i:"28d30f05-855f-465a-866e-5ddf1c3c8e6d"},
-  "DJI Matrice 4 Enterprise":{s:"dji-matrice-4-enterprise",i:"019c643f-16a2-7f34-bfb3-60525e59458d"},
-  "DJI Matrice 4 Thermal":{s:"dji-matrice-4-thermal",i:"51e6709b-8fd4-4e28-958c-90200d6fcea4"},
-  "DJI Mavic 3 Enterprise":{s:"dji-mavic-3-enterprise",i:"019c643f-16a0-773b-a79c-b683a172c28f"},
-  "DJI Mavic 3 Thermal":{s:"dji-mavic-3-thermal",i:"019c643f-16a1-7b58-80aa-b320ec2eaf4a"},
-  "DJI Mavic 3 Multispectral":{s:"dji-mavic-3-multispectral",i:"019c7101-a002-7997-a601-f66fbe60ba9d"},
-  "DJI Mavic 2 Enterprise Advanced":{s:"dji-mavic-2-enterprise-advanced",i:"3eee389e-8e58-404b-8f45-769c4c38268b"},
-  "DJI Mavic 2 Enterprise":{s:"dji-mavic-2-enterprise",i:"0d838235-9159-41a9-915e-88c0883da62c"},
-  "DJI Agras T50":{s:"dji-agras-t50",i:"a9c1f434-1068-473c-88aa-272c3dedb989"},
-  "DJI Agras T40":{s:"dji-agras-t40",i:"178e1034-5f79-4ed4-9043-43183ba0628b"},
-  "DJI Agras T30":{s:"dji-agras-t30",i:"e70e07eb-91d9-47b2-b750-925877661fd7"},
-  "DJI Agras T25":{s:"dji-agras-t25",i:"e0401bf7-d28d-4765-a0ca-86d2ac3fae41"},
-  "DJI Agras T10":{s:"dji-agras-t10",i:"692f87c1-649c-4ea4-a499-0d452af8bdfb"},
-  "DJI FlyCart 30":{s:"dji-flycart-30",i:"019c7e39-8b8d-72e8-929d-22d69e4dd056"},
-  "DJI FlyCart 100":{s:"dji-flycart-100",i:"019c7e39-8b8d-7321-93ad-3607f22552d5"},
-  "DJI Avata":{s:"dji-avata",i:"ea3d554e-5033-4d77-93b2-199c45544ada"},
-  "Autel EVO Max 4T V2":{s:"autel-evo-max-4t-v2",i:"019cd7c3-7a4a-7f8b-a9ad-d73bd4e01665"},
-  "Autel EVO Max 4T":{s:"autel-evo-max-4t",i:"019ccd51-8e00-7b11-b2cb-5253c842bd55"},
-  "Autel EVO Max 4T-XE":{s:"autel-evo-max-4t-xe",i:"019cd7c3-76ba-74a7-bc2e-b69e76cdc5cd"},
-  "Autel EVO Max 4N V2":{s:"autel-evo-max-4n-v2",i:"019cd321-4960-7b3c-be9b-43fda726f9d0"},
-  "Autel Alpha":{s:"autel-alpha",i:"019cd36f-1b40-7617-95ad-b18753603618"},
-  "Autel EVO II Pro V3":{s:"autel-evo-ii-pro-v3",i:"019cd3ec-c24f-75a3-afa7-45e1cfe5e993"},
-  "Autel EVO II Pro RTK V3":{s:"autel-evo-ii-rtk-v3",i:"019cd022-c7d9-77ff-8f8f-c6dbc59a27b2"},
-  "Autel EVO II Dual 640T V3":{s:"autel-evo-ii-dual-640t-v3",i:"019cd373-af20-72b0-b677-be0a7b3cc996"},
-  "Autel EVO Nano":{s:"autel-evo-nano",i:"019cd4c0-1a7c-7f4b-9ec9-e92f4fe8e93f"},
-  "Autel EVO Nano+":{s:"autel-evo-nano-plus",i:"019cd4c0-1a33-7700-899b-d9971ef3455f"},
-  "Autel EVO Lite":{s:"autel-evo-lite",i:"019cd55a-45e3-7ed9-a06d-fdc52342c6aa"},
-  "Autel EVO Lite+":{s:"autel-evo-lite-plus",i:"019cd55a-42c8-74aa-a339-8ddd423096b0"},
-  "Skydio X10":{s:"skydio-x10",i:"019cd5aa-7d24-7156-a768-16d95ee408b1"},
-  "Skydio X10D":{s:"skydio-x10d",i:"019cd5aa-7d7e-7c08-80fe-a905e80c0cab"},
-  "Skydio X2D":{s:"skydio-x2d",i:"019cd5c0-6eda-7283-8e75-ed7bbd422b3f"},
-  "Skydio X2E":{s:"skydio-x2e",i:"019cd5c0-57b0-7f7f-a1ac-805827062246"},
-  "Freefly Astro":{s:"freefly-astro",i:"019cd544-2e69-70a9-87ca-151c22fbc54a"},
-  "Freefly Astro Max":{s:"freefly-astro-max",i:"019cd3d8-676f-7e28-ad1a-8c819801c834"},
-  "Freefly Alta X":{s:"freefly-alta-x",i:"019cd512-37ac-78b2-b7d5-10700a9de8e4"},
-  "Freefly Alta X Gen2":{s:"freefly-alta-x-gen2",i:"019cd4a7-426e-76ef-a5b8-35b745ffb914"},
-  "Freefly Alta 8":{s:"freefly-alta-8",i:"019cd5d9-a63f-7ce1-9c51-63fb7e51be1c"},
-  "Freefly Alta 6":{s:"freefly-alta-6",i:"019cd5d9-b5c2-7055-8851-4acc09c5e094"},
-  "Antigravity A1":{s:"antigravity-a1",i:"019cc7a1-b465-79ad-9d49-47a5e2f3330e"},
-  "RigiTech Eiger":{s:"rigitech-eiger",i:"019c7e39-8b8d-7e88-89e4-23caa21f3a28"},
-  "StriekAir CarryAir":{s:"striekair-carryair",i:"019c7e39-8b8d-7c66-ab88-4b4b60ebc0d5"},
-  "Wingcopter 198":{s:"wingcopter-198",i:"019c7e39-8b8d-783c-99af-46a6b20e40a5"},
-  "Matternet M2":{s:"matternet-m2",i:"019c7e39-8b8d-77d7-a79d-b3421ad83b2d"},
-};
-export function getDCInfo(name){const e=DC_MAP[name];if(!e)return null;return{slug:e.s,img:`https://cdn.dronecompare.org/images/entities/${e.i}/product-240x120.webp`,imgLg:`https://cdn.dronecompare.org/images/entities/${e.i}/product-480x240.webp`,url:`https://dronecompare.org/${e.s}`};}
-
 const INJECTABLE=new Set(["OcuSync","OcuSync 2","OcuSync 3","OcuSync 3+","OcuSync 4","OcuSync 4+","OcuSync O4","OcuSync O4+","OcuSync 2 Enterprise","OcuSync 3 Enterprise","OcuSync 4 Enterprise","Lightbridge","Lightbridge 2","Enhanced WiFi","WiFi","WiFi 6"]);
 const JAM_DIFF={"WiFi":10,"Enhanced WiFi":15,"WiFi 6":25,"Lightbridge":20,"Lightbridge 2":25,"OcuSync":35,"OcuSync 2":40,"OcuSync 3":45,"OcuSync 3+":48,"OcuSync 4":52,"OcuSync 4+":55,"OcuSync O4":50,"OcuSync O4+":53,"OcuSync 2 Enterprise":50,"OcuSync 3 Enterprise":55,"OcuSync 4 Enterprise":60,"SkyLink 2":55,"SkyLink 3":60,"Skydio Link":60,"Microhard":65,"Futaba S-FHSS":30,"Custom ISM":55,"Doodle Labs Mesh":68};
 const cl=(v)=>Math.max(0,Math.min(100,Math.round(v)));
@@ -208,71 +119,23 @@ export const TOD_MODES={day:{label:"Day",icon:"☀️",desc:"Baseline conditions
 function todAcousticMod(tod){if(tod==="night")return 8;if(tod==="dusk")return 3;if(tod==="flightOps")return-22;return 0;}
 function todEOIRMod(tod){if(tod==="night")return 12;if(tod==="dusk")return-5;return 0;}
 
-// ── RADAR CALIBRATION REFERENCE ───────────────────────────────────────────────
-// Calibrated against AERIS-10 open-source X-band phased array radar (MIT License)
-// Source: github.com/NawfalMotii79/PLFM_RADAR · hackaday.io/project/205190
-//
-// AERIS-10 specs used for calibration baseline:
-//   Frequency:        10.5 GHz (X-band, lambda = 0.0286m)
-//   AERIS-10N:        8x16 patch array, 1W x 16 elements (16W total), range 3 km
-//   AERIS-10X:        32x16 slotted waveguide, 10W x 16 GaN PA (160W total), range 20 km
-//   Beam steering:    ±45 deg electronic (elevation) + 360 deg mechanical (azimuth)
-//   Processing:       FPGA pulse compression, Doppler FFT, MTI, CFAR (XC7A100T)
-//   Scan structure:   32 chirps/burst (16 PRF1 + 16 PRF2), 32 beam positions, 50 mech steps
-//
-// SV-1 uses 30x EchoGuard K-band ESA (24 GHz, higher freq = better small-RCS resolution)
-// EchoGuard outperforms AERIS-10N at sub-1km (higher freq, MIMO, commercial CFAR tuning)
-// but AERIS-10X range equation validates detection probability curves for mid-range targets.
-//
-// RCS-to-detection mapping calibrated via standard radar range equation:
-//   R_max = (Pt * G^2 * lambda^2 * sigma / ((4pi)^3 * Pmin))^(1/4)
-//   At 10.5 GHz, 16W total, 8x16 array gain ~25 dBi:
-//     0.001 m^2 RCS (sub-250g drone) -> ~600m detection (AERIS-10N) -> Pd ~35%
-//     0.01  m^2 RCS (DJI Mini class)  -> ~1.1km detection          -> Pd ~55%
-//     0.05  m^2 RCS (Mavic class)     -> ~1.8km detection          -> Pd ~72%
-//     0.1   m^2 RCS (Inspire class)   -> ~2.2km detection          -> Pd ~80%
-//     0.5   m^2 RCS (M300/large)      -> ~3.0km detection          -> Pd ~90%
-//     1.0+  m^2 RCS (cargo VTOL)      -> ~3.0km+ (range-limited)   -> Pd ~95%
-//   EchoGuard K-band at 1km range improves these by ~8-12% due to higher freq + MIMO
-//
-// Weight-to-RCS approximation (validated against published sUAS RCS measurements):
-//   RCS(m^2) ~ 0.0001 * (weight_grams / 100)^1.2 for multirotor
-//   VTOL fixed-wing platforms add ~6 dB (+4x) due to fuselage reflection
-//
-// These curves replace the previous notional power-law model with physics-grounded values.
-
 // ── SV-1 Scoring ──────────────────────────────────────────────────────────────
-function scoreRF(d,mo){if(mo.rfSilent)return 5;let b=85;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")b=95;else if(p.includes("Lightbridge"))b=92;else if(p.includes("OcuSync"))b=88;else if(p.includes("SkyLink"))b=80;else if(p.includes("Skydio"))b=78;else if(p.includes("Microhard"))b=72;else if(p.includes("Custom"))b=65;else if(p.includes("Futaba"))b=90;if(d.cell&&!mo.noCell)b-=5;if(d.enc)b-=3;return cl(b);}
-function scoreAcoustic(d,mo,tod){const w=d.w;const pf=Math.min(1,(d.pd||8)/20);const cb=((d.props||4)-4)*3;let b;if(w<=200)b=20;else if(w<=300)b=30;else if(w<=500)b=42;else if(w<=1000)b=52;else if(w<=2000)b=62;else if(w<=5000)b=72+pf*8;else if(w<=10000)b=82+pf*6;else b=88+pf*5;b+=cb;if(d.p==="VTOL")b-=18;if(mo.terrainMask)b-=12;b+=todAcousticMod(tod);return cl(b);}
-// Radar detection: AERIS-10 calibrated RCS-to-Pd model
-// Weight -> estimated RCS -> range equation -> detection probability
-// EchoGuard K-band offset (+10%) applied over AERIS-10 X-band baseline
-function scoreRadar(d,mo){
-  const w=d.w;
-  // Weight-to-RCS estimate (m^2): 0.0001 * (w/100)^1.2
-  const rcs=0.0001*Math.pow(w/100,1.2);
-  // VTOL fixed-wing adds ~6dB fuselage return
-  const effRcs=d.p==="VTOL"?rcs*4:rcs;
-  // Detection probability from calibrated RCS breakpoints
-  // Based on AERIS-10N range equation + EchoGuard K-band offset (+10 pts)
-  let b;
-  if(effRcs<0.002)b=32;       // sub-250g: barely detectable, ~600m range
-  else if(effRcs<0.008)b=48;  // 250-500g: marginal, ~900m range
-  else if(effRcs<0.02)b=58;   // Mini class: ~1.1km range
-  else if(effRcs<0.06)b=72;   // Mavic class: solid detect, ~1.8km
-  else if(effRcs<0.15)b=82;   // Inspire/M300: high confidence, ~2.2km
-  else if(effRcs<0.5)b=90;    // Large multi/cargo: near certain, ~3km
-  else b=95;                   // Cargo VTOL: max Pd
-  // Interpolate within brackets for smoother curve
-  if(effRcs>=0.002&&effRcs<0.008)b=48+Math.round(10*(effRcs-0.002)/0.006);
-  else if(effRcs>=0.008&&effRcs<0.02)b=58+Math.round(14*(effRcs-0.008)/0.012);
-  else if(effRcs>=0.02&&effRcs<0.06)b=72+Math.round(10*(effRcs-0.02)/0.04);
-  else if(effRcs>=0.06&&effRcs<0.15)b=82+Math.round(8*(effRcs-0.06)/0.09);
-  else if(effRcs>=0.15&&effRcs<0.5)b=90+Math.round(5*(effRcs-0.15)/0.35);
-  // Terrain masking degrades radar line-of-sight
-  if(mo.terrainMask)b-=18;
-  return cl(b);
+// Dragonfly (Research Innovations) — GPU-accelerated spectrum processing with
+// ML signal classification (Espy Quick Assist), 10 MHz-6 GHz wideband stare,
+// clustered LOB geolocation. Enhances RF detection of non-standard protocols
+// where threshold-based detection scores lowest.
+function dfBoostSV1(proto){
+  if(proto.includes("Custom"))return 5;
+  if(proto.includes("Doodle"))return 4;
+  if(proto.includes("Microhard"))return 4;
+  if(proto.includes("Skydio"))return 3;
+  if(proto.includes("SkyLink"))return 2;
+  if(proto.includes("OcuSync")||proto.includes("Futaba"))return 1;
+  return 0;
 }
+function scoreRF(d,mo){if(mo.rfSilent)return 5;let b=85;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")b=95;else if(p.includes("Lightbridge"))b=92;else if(p.includes("OcuSync"))b=88;else if(p.includes("SkyLink"))b=80;else if(p.includes("Skydio"))b=78;else if(p.includes("Microhard"))b=72;else if(p.includes("Custom"))b=65;else if(p.includes("Futaba"))b=90;b+=dfBoostSV1(p);if(d.cell&&!mo.noCell)b-=5;if(d.enc)b-=3;return cl(b);}
+function scoreAcoustic(d,mo,tod){const w=d.w;const pf=Math.min(1,(d.pd||8)/20);const cb=((d.props||4)-4)*3;let b;if(w<=200)b=20;else if(w<=300)b=30;else if(w<=500)b=42;else if(w<=1000)b=52;else if(w<=2000)b=62;else if(w<=5000)b=72+pf*8;else if(w<=10000)b=82+pf*6;else b=88+pf*5;b+=cb;if(d.p==="VTOL")b-=18;if(mo.terrainMask)b-=12;b+=todAcousticMod(tod);return cl(b);}
+function scoreRadar(d,mo){let b=20+55*Math.min(1,Math.pow(d.w/50000,0.4));if(d.p==="VTOL")b+=10;if(d.w>5000)b=Math.min(b+8,98);if(mo.terrainMask)b-=18;return cl(b);}
 function scoreEOIR(d,mo,tod){const w=d.w;let b=w<=200?28:w<=300?38:w<=500?48:w<=1000?58:w<=2000?68:w<=5000?78:w<=10000?88:95;if(mo.terrainMask)b-=15;b+=todEOIRMod(tod);return cl(b);}
 function scoreProtoInject(d,mo){if(mo.customFW)return 2;if(mo.rfSilent)return 0;if(!INJECTABLE.has(d.proto))return 10;const p=d.proto;if(p.includes("WiFi")||p==="Enhanced WiFi")return 92;if(p.includes("Lightbridge"))return 85;if(p.includes("Enterprise"))return 60;if(p.includes("4")||p.includes("O4"))return 65;if(p.includes("3"))return 70;if(p.includes("2"))return 78;return 80;}
 function scoreJamming(d,mo){if(mo.rfSilent)return 15;let b=100-(JAM_DIFF[d.proto]||50);if(d.cell&&!mo.noCell)b-=15;if(d.enc)b-=5;if(mo.swarm)b-=25;return cl(b);}
@@ -293,18 +156,27 @@ function analyzeNinja(d,mo){const rf=ninjaRF(d,mo);const def=ninjaDefeat(d,mo);c
 // GNSS denial forces failsafe but does not redirect the drone to a capture point
 
 function suadsRF(d,mo){
-  // MEDUSA sensor fusion improves on single-unit NINJA, but still RF-only
+  // MEDUSA sensor fusion + Dragonfly ML classification
+  // Dragonfly adds less delta to SUADS than SV-1 because MEDUSA already does
+  // broadband scanning; Dragonfly accelerates classification, not fundamental detection
   if(mo.rfSilent)return 4;
   const p=d.proto;
-  if(p.includes("OcuSync")||p.includes("Lightbridge"))return 85; // DJI well-characterized
-  if(p.includes("WiFi")||p==="Enhanced WiFi")return 88; // simple protocols easy
-  if(p.includes("SkyLink"))return 62; // better than NINJA due to MEDUSA broadband scan
-  if(p.includes("Skydio"))return 58;
-  if(p.includes("Microhard"))return 52; // ISM, harder but MEDUSA picks up energy
-  if(p.includes("Custom"))return 42; // unknown protocol, anomaly detection
-  if(p.includes("Futaba"))return 70;
-  if(d.enc)return cl(72-4);
-  return 72;
+  let b=72;
+  if(p.includes("OcuSync")||p.includes("Lightbridge"))b=85;
+  else if(p.includes("WiFi")||p==="Enhanced WiFi")b=88;
+  else if(p.includes("SkyLink"))b=62;
+  else if(p.includes("Skydio"))b=58;
+  else if(p.includes("Microhard"))b=52;
+  else if(p.includes("Custom"))b=42;
+  else if(p.includes("Futaba"))b=70;
+  // Dragonfly boost for SUADS: smaller than SV-1 (MEDUSA already covers broadband)
+  if(p.includes("Custom"))b+=3;
+  else if(p.includes("Doodle")||p.includes("Microhard"))b+=3;
+  else if(p.includes("Skydio"))b+=2;
+  else if(p.includes("SkyLink"))b+=2;
+  else if(p.includes("OcuSync")||p.includes("Futaba"))b+=1;
+  if(d.enc)b-=4;
+  return cl(b);
 }
 
 function suadsC2Jam(d,mo){
@@ -562,9 +434,6 @@ export function validateExtracted(raw){const d={...raw};d.n=d.n||"Unknown Platfo
 const KEY_STORAGE="shaw_cuas_api_key";
 export function loadApiKey(){try{return localStorage.getItem(KEY_STORAGE)||"";}catch(e){return"";}}
 export function saveApiKey(k){try{localStorage.setItem(KEY_STORAGE,k);}catch(e){}}
-const GMAP_KEY_STORAGE="shaw_cuas_gmap_key";
-export function loadGmapKey(){try{return localStorage.getItem(GMAP_KEY_STORAGE)||"";}catch(e){return"";}}
-export function saveGmapKey(k){try{localStorage.setItem(GMAP_KEY_STORAGE,k);}catch(e){}}
 
 // ── Briefing with Three-Way Comparison + Assessment ───────────────────────────
 function rc(t){return{CRITICAL:"#ff0000",ELEVATED:"#ff9900",LOW:"#00cc66"}[t]||"#888";}
@@ -626,10 +495,10 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
 
   // System cards
   html+=`<div style="display:flex;gap:12px;margin:10px 0;flex-wrap:wrap">`;
-  html+=`<div class="sb" style="border-color:#0a4"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#0a4;margin:0 0 4px">SV-1 MULTI-MODAL ($1.64M)</h3><div style="color:#666">4 detection (RF+Acoustic+Radar+EO/IR) · 3 defeat (Injection+Jamming+GPS Spoof) · 40 sensor nodes</div><div class="ts">`;
+  html+=`<div class="sb" style="border-color:#0a4"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#0a4;margin:0 0 4px">SV-1 MULTI-MODAL ($1.64M)</h3><div style="color:#666">4 detection (RF+Acoustic+Radar+EO/IR) · 3 defeat (Injection+Jamming+GPS Spoof) · 40 sensor nodes · Dragonfly ML spectrum processing</div><div class="ts">`;
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(tiers[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${tiers[t].length}</div>`;});
   html+=`</div></div>`;
-  html+=`<div class="sb" style="border-color:#2266cc"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#2266cc;margin:0 0 4px">RD-SUADS (Trust Automation)</h3><div style="color:#666">1 detection (RF/MEDUSA) · 2 defeat (C2 Jam+GNSS Denial) · No radar/acoustic/EO-IR</div><div class="ts">`;
+  html+=`<div class="sb" style="border-color:#2266cc"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#2266cc;margin:0 0 4px">RD-SUADS (Trust Automation)</h3><div style="color:#666">1 detection (RF/MEDUSA + Dragonfly ML) · 2 defeat (C2 Jam+GNSS Denial) · No radar/acoustic/EO-IR</div><div class="ts">`;
   ["CRITICAL","ELEVATED","LOW"].forEach(t=>{if(sT[t].length)html+=`<div class="tb" style="background:${rc(t)}20;color:${rc(t)};border:1px solid ${rc(t)}44">${t[0]}:${sT[t].length}</div>`;});
   html+=`</div></div>`;
   html+=`<div class="sb" style="border-color:#c60"><h3 style="font-family:Oxanium,sans-serif;font-size:10px;color:#c60;margin:0 0 4px">NINJA Gen2 (Black River)</h3><div style="color:#666">1 detection (RF) · 1 defeat (Protocol Manipulation) · No jamming/GPS/radar/acoustic</div><div class="ts">`;
@@ -774,16 +643,7 @@ td{padding:3px;border-bottom:1px solid #e0e0e0}tr:nth-child(even){background:#f8
   html+=`<div style="font-size:8px;color:#444;margin-top:4px">${cape.optimal.rationale}</div>`;
   html+=`</div>`;
 
-  html+=`<div style="margin-top:8px;padding-top:4px;border-top:1px solid #ccc;font-size:7px;color:#888;display:flex;justify-content:space-between"><span>Shaw AFB C-UAS · CAPE Analysis</span><span>Costs in FY26 USD · Effectiveness = avg detect+defeat rate across ${data.length} platforms</span></div>`;
-
-  // Disclaimer
-  html+=`<div style="margin-top:24px;padding:14px 16px;background:#fff8e8;border:2px solid #cc8800;border-radius:6px">`;
-  html+=`<div style="font-family:Oxanium,sans-serif;font-size:9px;font-weight:700;color:#cc8800;letter-spacing:2px;margin-bottom:6px">⚠ DISCLAIMER</div>`;
-  html+=`<div style="font-size:8px;color:#555;line-height:1.6">The interceptor drones and configurations listed in this document would require extensive real world testing against each platform dozens of times to portray exact defeat and detection scoring averages. Please speak with your resident c-sUAS and base defense experts before making any technology decisions.</div>`;
-  html+=`<div style="font-size:7px;color:#999;margin-top:6px">Radar detection model calibrated against AERIS-10 open-source X-band phased array radar specifications (10.5 GHz, PLFM, 8x16/32x16 arrays). See github.com/NawfalMotii79/PLFM_RADAR for reference data.</div>`;
-  html+=`</div>`;
-
-  html+=`</div></body></html>`;
+  html+=`<div style="margin-top:8px;padding-top:4px;border-top:1px solid #ccc;font-size:7px;color:#888;display:flex;justify-content:space-between"><span>Shaw AFB C-UAS · CAPE Analysis</span><span>Costs in FY26 USD · Effectiveness = avg detect+defeat rate across ${data.length} platforms</span></div></div></body></html>`;
   return html;
 }
 
@@ -890,8 +750,8 @@ export async function generatePPTX(data,mods,tod,scenarioName,theme="dark"){
   s2.addText("SYSTEM OVERVIEW",{x:0.5,y:0.3,w:9,h:0.5,fontSize:22,color:fg,fontFace:hFont,bold:true});
 
   const sysData=[
-    {id:"sv1",label:"SV-1 MULTI-MODAL",sub:"4 detect · 3 defeat · 40 nodes",cost:"$1.64M",key:"rt"},
-    {id:"suads",label:"RD-SUADS",sub:"1 detect (RF) · 2 defeat (C2+GNSS)",cost:"$2.00M",key:"sTier"},
+    {id:"sv1",label:"SV-1 MULTI-MODAL",sub:"4 detect · 3 defeat · 40 nodes · Dragonfly ML",cost:"$1.64M",key:"rt"},
+    {id:"suads",label:"RD-SUADS",sub:"1 detect (RF/MEDUSA + Dragonfly) · 2 defeat",cost:"$2.00M",key:"sTier"},
     {id:"ninja",label:"NINJA Gen2",sub:"1 detect (RF) · 1 defeat (Protocol)",cost:"$2.00M",key:"nTier"},
   ];
   sysData.forEach((sys,i)=>{
@@ -1078,118 +938,4 @@ export async function generatePPTX(data,mods,tod,scenarioName,theme="dark"){
   a.download=`Shaw_AFB_cUAS_${theme==="dark"?"Dark":"Light"}_${now}.pptx`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-// ── Monte Carlo Simulation Engine ──────────────────────────────────────────────
-// Dual uncertainty model: sensor performance variance + threat parameter uncertainty
-// Uses Box-Muller transform for Gaussian sampling, truncated to [0,100] via cl()
-
-function gaussRand(){
-  let u=0,v=0;
-  while(u===0)u=Math.random();
-  while(v===0)v=Math.random();
-  return Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
-}
-
-export const MC_DEFAULT_SIGMA={
-  rf:3,acoustic:8,radar:5,eoir:6,
-  protoInject:4,jamming:6,gps:4,
-  ninjaRF:4,ninjaDefeat:5,
-  suadsRF:4,suadsJam:6,suadsGNSS:5
-};
-
-export const MC_SIGMA_LABELS={
-  rf:"RF Detection",acoustic:"Acoustic Detection",radar:"Radar Detection",eoir:"EO/IR Detection",
-  protoInject:"Protocol Injection",jamming:"Targeted Jamming",gps:"GPS Spoofing",
-  ninjaRF:"NINJA RF Det",ninjaDefeat:"NINJA Defeat",
-  suadsRF:"SUADS RF Det",suadsJam:"SUADS C2 Jam",suadsGNSS:"SUADS GNSS Denial"
-};
-
-export const MC_SIGMA_GROUPS={
-  "SV-1 Detection":["rf","acoustic","radar","eoir"],
-  "SV-1 Defeat":["protoInject","jamming","gps"],
-  "NINJA":["ninjaRF","ninjaDefeat"],
-  "RD-SUADS":["suadsRF","suadsJam","suadsGNSS"]
-};
-
-function perturbScore(base,sigma){return cl(Math.round(base+gaussRand()*sigma));}
-
-function mcComputeStats(arr){
-  const sorted=[...arr].sort((a,b)=>a-b);
-  const n=sorted.length;
-  const mean=Math.round(arr.reduce((s,v)=>s+v,0)/n);
-  const variance=arr.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n;
-  const sd=Math.round(Math.sqrt(variance)*10)/10;
-  const p5=sorted[Math.floor(n*0.05)];
-  const p10=sorted[Math.floor(n*0.10)];
-  const p25=sorted[Math.floor(n*0.25)];
-  const p50=sorted[Math.floor(n*0.50)];
-  const p75=sorted[Math.floor(n*0.75)];
-  const p90=sorted[Math.floor(n*0.90)];
-  const p95=sorted[Math.floor(n*0.95)];
-  const bins=new Array(20).fill(0);
-  arr.forEach(v=>{const idx=Math.min(19,Math.floor(v/5));bins[idx]++;});
-  const tiers={LOW:0,ELEVATED:0,CRITICAL:0};
-  arr.forEach(v=>{if(v>=81)tiers.LOW++;else if(v>=61)tiers.ELEVATED++;else tiers.CRITICAL++;});
-  Object.keys(tiers).forEach(k=>{tiers[k]=Math.round(tiers[k]/n*1000)/10;});
-  return{mean,sd,p5,p10,p25,p50,p75,p90,p95,bins,tiers,min:sorted[0],max:sorted[n-1]};
-}
-
-export function runMonteCarlo(drone,mods,tod,config={}){
-  const iterations=config.iterations||5000;
-  const sigma={...MC_DEFAULT_SIGMA,...(config.sigma||{})};
-  const threatDist=config.threatDist||null;
-  const weightSigma=config.weightSigma||0;
-  const sv1Eff=[];const ninjaEff=[];const suadsEff=[];
-  const sv1Det=[];const sv1Def=[];
-
-  for(let i=0;i<iterations;i++){
-    let d=drone;
-    if(threatDist&&threatDist.length>0){
-      const r=Math.random();let cum=0;
-      for(const t of threatDist){cum+=t.prob;if(r<=cum){d={...drone,proto:t.proto};break;}}
-    }
-    if(weightSigma>0){d={...d,w:Math.max(50,Math.round(d.w+gaussRand()*weightSigma))};}
-    const base=analyzeDrone(d,mods,tod);
-
-    const pRF=perturbScore(base.rd,sigma.rf);
-    const pAC=perturbScore(base.ad,sigma.acoustic);
-    const pRAD=perturbScore(base.rad,sigma.radar);
-    const pEO=perturbScore(base.ed,sigma.eoir);
-    const pDet=cl(Math.round((1-(1-pRF/100)*(1-pAC/100)*(1-pRAD/100)*(1-pEO/100))*100));
-
-    const pPI=perturbScore(base.pi,sigma.protoInject);
-    const pJM=perturbScore(base.jm,sigma.jamming);
-    const pGS=perturbScore(base.gs,sigma.gps);
-    const pDef=cl(Math.round((1-(1-pPI/100)*(1-pJM/100)*(1-pGS/100))*100));
-
-    const eff=cl(Math.round(pDet*pDef/100));
-    sv1Eff.push(eff);sv1Det.push(pDet);sv1Def.push(pDef);
-
-    const pNRF=perturbScore(base.nRF,sigma.ninjaRF);
-    const pNDef=perturbScore(base.nDefeat,sigma.ninjaDefeat);
-    ninjaEff.push(cl(Math.round(pNRF*pNDef/100)));
-
-    const pSRF=perturbScore(base.sRF,sigma.suadsRF);
-    const pSJam=perturbScore(base.sJam,sigma.suadsJam);
-    const pSGNSS=perturbScore(base.sGNSS,sigma.suadsGNSS);
-    const pSDef=cl(Math.round((1-(1-pSJam/100)*(1-pSGNSS/100))*100));
-    suadsEff.push(cl(Math.round(pSRF*pSDef/100)));
-  }
-
-  return{
-    sv1:{...mcComputeStats(sv1Eff),det:mcComputeStats(sv1Det),def:mcComputeStats(sv1Def)},
-    ninja:mcComputeStats(ninjaEff),
-    suads:mcComputeStats(suadsEff),
-    iterations,
-    drone:{n:drone.n,proto:drone.proto,w:drone.w}
-  };
-}
-
-export function getAllDroneNames(customDrones=[]){
-  return[...DRONES,...customDrones].map(d=>({n:d.n,proto:d.proto,w:d.w,m:d.m}));
-}
-
-export function getDroneByName(name,customDrones=[]){
-  return[...DRONES,...customDrones].find(d=>d.n===name)||DRONES[0];
 }
